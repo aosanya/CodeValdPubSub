@@ -2,43 +2,38 @@
 
 ## The Problem
 
-The CodeVald platform uses **CodeValdAI** to orchestrate AI agents that produce **artifacts** — code files, Markdown reports, YAML configs, and any other file type — as the outputs of tasks.
+The CodeVald platform is a collection of independent microservices — CodeValdWork, CodeValdGit, CodeValdAgency, CodeValdComm, CodeValdDT — each owning a slice of platform state. These services must react to each other's lifecycle events:
 
-Before CodeValdGit, the platform managed these artifacts using a **custom hand-rolled Git engine** in `internal/git/` backed by ArangoDB:
+- When CodeValdWork starts a task, CodeValdGit must create a branch.
+- When CodeValdGit merges a branch, CodeValdWork must advance the task status.
+- When CodeValdAgency publishes a new agency, CodeValdWork must provision its project structures.
 
-| Component | Problem |
+Before CodeValdPubSub, the platform handled this with **ad-hoc direct calls routed through CodeValdCross**:
+
+| Problem | Consequence |
 |---|---|
-| `internal/git/ops/` | Custom SHA-1 object engine — reinvented Git from scratch, bug-prone |
-| `internal/git/storage/` | ArangoDB `git_objects` / `git_refs` collections — tightly coupled to ArangoDB |
-| `internal/git/fileindex/` | ArangoDB-backed file index — separate system that could drift from Git state |
-| `internal/git/models/` | Custom `GitObject`, `GitTree`, `GitCommit` structs — incompatible with standard tooling |
-
-**Consequences:**
-- Hard to maintain — any Git edge case required custom fixes
-- No standard merge strategy — concurrent agent writes had no safe reconciliation
-- No history browsing — UI couldn't navigate file history or compare branches
-- No portability — artifacts were locked inside ArangoDB, unreadable by standard Git tools
+| No durable event record | If the receiving service was down, the event was lost — no replay, no recovery |
+| Tight coupling | Each service had to know which other services cared about its events |
+| No audit trail | No way to reconstruct the sequence of cross-service state changes that led to a given outcome |
+| No fan-out | An event could only be consumed by one downstream handler; adding a second consumer required code changes |
+| AgencyID scattered | Each service carried its own ad-hoc `CrossPublisher` stub that only logged events |
 
 ---
 
 ## The Solution
 
-Replace `internal/git/` with **CodeValdGit** — a proper Go library backed by [go-git](https://github.com/go-git/go-git):
+**CodeValdPubSub** is the durable, hierarchical event bus for the platform:
 
-- **Real Git semantics** — branches, commits, merges, diffs — all via go-git's pure-Go engine
-- **Task isolation** — every agent task works on its own `task/{task-id}` branch
-- **Auto-rebase** — when `main` has advanced, the library rebases the task branch automatically
-- **Pluggable storage** — filesystem (default) or ArangoDB, injected by the caller
-- **Portable artifacts** — every repo is a valid `.git` directory, readable by any Git client
+- **Durable**: Every event is written to ArangoDB before being routed. A subscriber that is temporarily down will receive missed events on reconnect.
+- **Hierarchical topics**: Topics embed the agency ID and entity identifiers — `work.<agencyID>.<projectName>.<taskName>.createbranch` — so subscribers can filter at any level of granularity.
+- **Fan-out**: Any number of subscribers can independently receive the same event. Adding a new consumer requires no change to the publisher.
+- **Replay**: Historical events can be queried by topic pattern, agency, and time range. A new service can bootstrap its state by replaying past events.
+- **Audit trail**: The event log is the authoritative record of cross-service state transitions.
 
 ---
 
-## Scope of Replacement
+## What PubSub Is Not
 
-| Replaced | Replacement |
-|---|---|
-| `internal/git/ops/` | go-git object engine |
-| `internal/git/storage/` | `storage.Storer` (filesystem or ArangoDB) |
-| `internal/git/fileindex/` | go-git tree walking |
-| `internal/git/models/` | go-git plumbing types |
-| ArangoDB `git_objects`, `git_refs`, `repositories` | Dropped entirely |
+- It is **not** a general-purpose message queue. Events are structured CodeVald lifecycle events, not arbitrary byte payloads.
+- It is **not** a replacement for the `eventbus.Publisher` interface used for intra-service logging. PubSub is the durable cross-service routing layer that eventually backs that interface.
+- It is **not** a command bus. Publishers emit facts ("this happened"); subscribers decide what to do about them.

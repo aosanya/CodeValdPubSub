@@ -1,43 +1,47 @@
 # Stakeholders
 
-## Primary Consumer
+## Publishers
 
-| Stakeholder | Role | How They Use CodeValdGit |
+Every platform service that emits lifecycle events is a publisher.
+
+| Service | Published Topics (prefix) | When |
 |---|---|---|
-| **CodeValdCross** | Primary and only consumer | Imports `github.com/aosanya/CodeValdGit` as a Go module; calls `RepoManager` and `Repo` at Agency and Task lifecycle points |
+| **CodeValdWork** | `work.<agencyID>.<projectName>.<taskName>.*` | Task lifecycle: created, started, assigned, completed, failed, cancelled |
+| **CodeValdGit** | `git.<agencyID>.<repoID>.*` | Repository and branch lifecycle: created, merged, conflict |
+| **CodeValdAgency** | `agency.<agencyID>.*` | Agency lifecycle: created, published, promoted |
+| **CodeValdComm** | `comm.<agencyID>.*` | Communication events (planned) |
+| **CodeValdDT** | `dt.<agencyID>.*` | Data table events (planned) |
+
+Publishers call `PubSubManager.Publish(ctx, Event)`. The PubSub service records the event durably and routes it to matching subscribers before returning.
 
 ---
 
-## CodeValdCross Integration Points
+## Subscribers
 
-CodeValdCross calls CodeValdGit at these lifecycle events:
+| Consumer | Subscriptions | Purpose |
+|---|---|---|
+| **CodeValdGit** | `work.<agencyID>.*.*.createbranch` | Creates a task branch when CodeValdWork starts a task |
+| **CodeValdWork** | `git.<agencyID>.<repoID>.*.merged` | Advances task status when its branch is merged |
+| **CodeValdAI** | `work.<agencyID>.*.*.completed` | Picks up completed tasks for AI post-processing |
+| **Platform operators** | `*.#` (all events) | Monitoring, audit, debugging |
 
-| Event | CodeValdGit Call |
-|---|---|
-| Agency created | `RepoManager.InitRepo(agencyID)` |
-| Agency deleted | `RepoManager.DeleteRepo(agencyID)` |
-| Task started | `Repo.CreateBranch(taskID)` |
-| Agent writes output | `Repo.WriteFile(taskID, path, content, ...)` |
-| Task completed | `Repo.MergeBranch(taskID)` → `Repo.DeleteBranch(taskID)` |
-| UI file browser | `Repo.ListDirectory(ref, path)` |
-| UI file view | `Repo.ReadFile(ref, path)` |
-| UI history view | `Repo.Log(ref, path)` |
+Subscribers register a topic pattern. PubSub delivers matching events at-least-once. Subscribers acknowledge receipt; unacknowledged events are retried.
 
 ---
 
-## Secondary Stakeholders
+## Operators
 
-| Stakeholder | Interest |
+| Role | Interest |
 |---|---|
-| **Platform operators** | Need `PurgeRepo` for permanent data removal; need archive path configuration |
-| **AI agents (indirect)** | Produce artifacts via CodeValdCross — their output is what gets committed; affected by merge conflict routing |
-| **End users (indirect)** | View artifact history and diffs through the CodeValdCross UI — powered by `Log` and `Diff` operations |
+| **Platform operators** | Event replay for incident reconstruction; retention policy management |
+| **Agency admins** | Per-agency event audit (`*.<agencyID>.#`) |
+| **AI agents (indirect)** | Agents trigger events via their host services; they do not publish to PubSub directly |
 
 ---
 
 ## Library Maintainers
 
-The library is maintained as part of the **CodeVald** platform (CodeValdCross, CodeValdGit, CodeValdWork). Development follows:
-- Trunk-based development with short-lived feature branches (`feature/GIT-XXX_description`)
-- Pure Go — no `git` binary dependency
-- go-git v5 as the sole Git engine dependency
+CodeValdPubSub is maintained as part of the CodeVald platform alongside CodeValdWork, CodeValdGit, and CodeValdSharedLib. It follows the same development conventions:
+- Go module at `github.com/aosanya/CodeValdPubSub`
+- gRPC service registered with CodeValdCross via heartbeat registrar
+- ArangoDB entitygraph for durable storage
