@@ -1,126 +1,107 @@
-# CodeValdGit — Requirements
+# CodeValdPubSub — Requirements
 
 ## 1. Purpose
 
-CodeValdGit is a **Go gRPC microservice** that provides Git-based artifact versioning for the CodeVald platform.
+CodeValdPubSub is a **Go gRPC microservice** that provides durable pub/sub event recording and routing for the CodeVald platform.
 
-AI agents produce artifacts (code, Markdown, configs, reports, and any other file type). CodeValdGit manages the storage, versioning, and lifecycle of those artifacts using real Git semantics via [go-git](https://github.com/go-git/go-git).
+Platform services (CodeValdWork, CodeValdGit, CodeValdAgency, etc.) publish lifecycle events to CodeValdPubSub. PubSub records every event durably in ArangoDB and routes it to registered subscribers. Subscribers may also replay historical events by topic pattern and time range.
 
 ---
 
 ## 2. Scope
 
 ### In Scope
-- Full Git repository lifecycle management (init, read, write, branch, merge, archive, delete)
-- Blob storage for any file type (text and binary)
-- Branch-per-task workflow (create, commit, auto-merge)
-- Repo archiving on Agency deletion (move to archive path, not hard-deleted)
-- Read access to historical commits: file content at any SHA, file history, and diffs (for CodeValdHi UI)
-- Exposed as a Go library (`import "github.com/aosanya/CodeValdGit"`)
+- Durable recording of all published events in ArangoDB
+- Hierarchical topic routing with wildcard pattern subscription
+- Fan-out delivery to multiple independent subscribers per topic pattern
+- At-least-once delivery with subscriber acknowledgement and retry
+- Historical event replay by topic pattern, agencyID, and time range
+- gRPC service exposed via CodeValdCross HTTP proxy
 
 ### Out of Scope
-- Remote Git hosting (no GitHub/GitLab push/pull — local repos only, for now)
-- Authentication / access control (handled by the platform's policy layer)
-- Pull request UI (merge is programmatic, not UI-driven)
+- Exactly-once delivery (subscribers must be idempotent)
+- Cross-topic ordering guarantees
+- Payload transformation or schema validation
+- Authorization enforcement (deferred until CodeValdOrg lands)
+- Arbitrary binary payloads (events carry structured CodeVald entity data)
 
 ---
 
-## 3. Replaces
+## 3. Functional Requirements
 
-CodeValdGit **fully replaces** the legacy `internal/git/` hand-rolled Git engine:
+### FR-001: Durable Event Recording
+- Every call to `Publish` must write the event to ArangoDB **before** routing it to any subscriber
+- Publish must be atomic with respect to the event record: if the write fails, no routing occurs
+- Events are never silently dropped — failures are returned to the publisher
 
-| Replaced package | Reason for replacement |
-|---|---|
-| `internal/git/ops/` | Custom SHA-1 Git object engine over ArangoDB → replaced by go-git |
-| `internal/git/storage/` | ArangoDB `git_objects`, `git_refs`, `repositories` collections → replaced by real `.git` on disk |
-| `internal/git/fileindex/` | ArangoDB-backed file index → replaced by go-git tree walking |
-| `internal/git/models/` | Custom GitObject, GitTree, GitCommit structs → replaced by go-git types |
+### FR-002: Hierarchical Topic Format
+- Every event topic must conform to the format: `<service>.<agencyID>.<entity-segment-1>…<entity-segment-N>.<action>`
+- The service segment is the originating service name (`work`, `git`, `agency`, `comm`, `dt`)
+- The agencyID segment is always the second segment
+- Entity segments are zero or more resource identifiers (project name, task name, repo ID, branch ID, etc.) between the agencyID and the action
+- The action is the final segment — a past-tense or gerund verb naming the occurrence (`created`, `completed`, `merged`, `createbranch`, `conflict.detected`)
+- Topics may not exceed 10 segments or 512 characters
 
-> **No migration needed.** The ArangoDB Git collections (`git_objects`, `git_refs`, `repositories`) will be dropped entirely.
+### FR-003: Pattern Subscriptions
+- Subscribers register a **topic pattern** at subscription creation time
+- Pattern syntax:
+  - `.` separates segments
+  - `*` matches exactly one segment (any value)
+  - `#` matches any remaining suffix (must be the last pattern segment)
+- Subscriptions persist across service restarts
+- A subscriber may hold multiple subscriptions; each is matched independently
 
----
+### FR-004: Fan-Out Delivery
+- When an event is published, PubSub must route a copy to **every** subscriber whose pattern matches the topic
+- Delivery to one subscriber must not block or fail delivery to others
+- Delivery is best-effort concurrent; ordering within a topic is preserved per-subscriber
 
-## 4. Functional Requirements
+### FR-005: At-Least-Once Delivery
+- PubSub must retry delivery to a subscriber that has not acknowledged an event within a configurable timeout
+- Each event is assigned a globally unique ID (UUID v4); subscribers use this ID for deduplication
+- A subscriber may acknowledge an event explicitly (via `Ack`) or implicitly by returning success from its handler gRPC method
 
-### FR-001: Repository Per Agency
-- Each Agency may own **multiple Git repositories**, each uniquely identified by name
-- Repository identity is the **Agency ID** (matches the existing database-per-agency isolation model)
-- Repos must be initializable, openable, and deletable by Agency ID
+### FR-006: Event Replay
+- The service must expose a `QueryEvents` API that returns historical events matching:
+  - A topic pattern (same wildcard syntax as subscriptions)
+  - An optional agencyID filter
+  - An optional time range (`from`, `to`)
+  - A limit and pagination cursor
+- Results are returned ordered by event timestamp, oldest first
 
-### FR-002: Any File Type
-- The library must store **any file type** without restriction
-- Text files (`.go`, `.md`, `.yaml`, `.json`, etc.) should be stored as-is and produce meaningful diffs
-- Binary files are stored as blobs
+### FR-007: CodeValdCross Integration
+- PubSub must register its HTTP routes and gRPC method bindings with CodeValdCross via the standard heartbeat registrar (every 20 seconds)
+- No Cross recompile is required when routes are added
 
-### FR-003: Branch-Per-Task Workflow
-- Agents **must not commit directly to `main`**
-- Every write operation happens on a **task branch**: `task/{task-id}`
-- The library must support:
-  - Creating a task branch from `main`
-  - Committing files to a task branch
-  - Auto-merging a task branch to `main` on task completion
-  - Deleting the task branch after merge
-
-### FR-004: Commit Attribution
-- Every commit must record the **author** (agent ID or human user) and a **message**
-- Commit messages should be structured and machine-readable (e.g., include task ID)
-
-### FR-005: File Operations
-- Read file content at HEAD or any commit SHA
-- List directory contents (tree walking)
-- Get commit history for a file or path
-- Diff between two commits or between a branch and `main`
-
-### FR-006: Merge Conflict Resolution
-- When `MergeBranch` is called and `main` has advanced since the task branch was created (fast-forward not possible), the library **must first attempt an auto-rebase** of the task branch onto the current `main`
-- If the rebase succeeds (no file-level conflicts), the fast-forward merge proceeds automatically
-- If the rebase encounters a content conflict, the library **must return a structured error** to the caller (CodeValdCross) containing:
-  - The conflicting file path(s)
-  - The nature of the conflict
-- The caller is responsible for routing the conflict back to the agent for resolution
-- The task branch must be left in a clean state (rebase aborted) on conflict so the agent can retry
-
-> **go-git constraint**: `Repository.Merge()` only supports `FastForwardMerge` strategy (added v5.12.0). Three-way merges and rebase are not natively supported in go-git. The rebase step must be implemented manually by walking commits on the task branch and cherry-picking them onto `main`.
-
-### FR-007: Repository Archiving
-- When an Agency is deleted, its Git repository **must not be hard-deleted immediately**
-- `DeleteRepo(agencyID)` must **archive** the repository by moving it to a configurable archive path: `{archive_base_path}/{agency-id}/`
-- The archived repo is a complete, valid `.git` repository — it can be inspected or restored at any time
-- A separate `PurgeRepo(agencyID)` call performs the actual hard delete (`os.RemoveAll`) for operators who explicitly want permanent removal
-- The `RepoManager` must be configured with both a `base_path` (live repos) and an `archive_base_path` (archived repos)
-
-### FR-008: History and Diff Read Access (UI)
-- The library must support reading historical state for the CodeValdCross UI at launch
-- Required operations:
-  - **File content at any ref**: `ReadFile(ctx, ref, path)` where `ref` is a branch name, tag, or commit SHA
-  - **Directory listing at any ref**: `ListDirectory(ctx, ref, path)` — enables a file browser at any point in history
-  - **File commit history**: `Log(ctx, ref, path)` — returns ordered list of commits that touched a given path
-  - **Diff between two refs**: `Diff(ctx, fromRef, toRef)` — returns per-file changes between any two commits or branches
-- All read operations must be non-mutating and safe to call concurrently
-- These are already present in the draft `Repo` interface in the architecture doc
+### FR-008: Agency Isolation
+- All operations (publish, subscribe, query) are scoped to a single agencyID — the owning agency of the caller's context
+- A subscriber registered to `work.agency-abc.#` receives only events whose agencyID segment is `agency-abc`
+- Cross-agency subscriptions are not permitted in v1
 
 ---
 
-## 5. Non-Functional Requirements
+## 4. Non-Functional Requirements
 
-### NFR-001: Embeddable Library
-- Must be importable as a standard Go module
-- No long-running daemon or sidecar process required
-- Caller (CodeValdCross) controls concurrency
-- Storage backend is injected by the caller via `storage.Storer` — supports filesystem and ArangoDB out of the box
+### NFR-001: Embeddable Go Library
+- The core PubSub logic must be importable as a standard Go module
+- The gRPC server is a thin shell over the library; the library itself has no daemon dependency
+- Storage backend is injected via `entitygraph.DataManager`
 
-### NFR-002: No External Git Binary
-- Must use go-git's pure-Go implementation
-- No dependency on the `git` CLI binary at runtime
+### NFR-002: Concurrent Safety
+- `PubSubManager` implementations must be safe for concurrent use without external locking
+- Event fan-out must not serialize subscriber delivery
+
+### NFR-003: Idempotent Publish
+- Publishing the same event twice (same `IdempotencyKey`) must record one event and return the same result both times
+- The idempotency window is at least 24 hours
 
 ---
 
-## 6. Open Questions (Research Gaps)
+## 5. Open Questions
 
 | # | Question | Impact |
 |---|---|---|
-| ~~OQ-001~~ | ~~Where are Git repos stored? Filesystem path, shared PVC, or in-memory?~~ | ✅ **Resolved** — pluggable via `storage.Storer`; filesystem and ArangoDB are both supported backends; caller injects the implementation |
-| ~~OQ-002~~ | ~~What happens when an auto-merge fails due to a conflict?~~ | ✅ **Resolved** — see FR-006: auto-rebase then surface conflict error to caller |
-| ~~OQ-003~~ | ~~What happens to the Git repo when an Agency is deleted?~~ | ✅ **Resolved** — see FR-007: `DeleteRepo` archives to `archive_base_path`; `PurgeRepo` hard-deletes |
-| ~~OQ-004~~ | ~~Should the library support read access to historical commits from the CodeValdCross UI?~~ | ✅ **Resolved** — yes, at launch; see FR-008 |
-| ~~OQ-005~~ | ~~Are there any file size limits or quotas per repo?~~ | ✅ **Resolved** — no limits enforced; library imposes no file size or repo size constraints |
+| OQ-001 | How does PubSub deliver events to subscribers — push (gRPC server-stream) or pull (subscriber polls)? | Architecture of delivery loop |
+| OQ-002 | What is the configurable retry timeout for unacknowledged events? | SLA for at-least-once |
+| OQ-003 | What is the default event retention period? | Storage sizing |
+| OQ-004 | Should cross-agency subscriptions be permitted for operator-level callers? | Permission model |

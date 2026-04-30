@@ -2,49 +2,75 @@
 
 ## Feature Overview
 
-CodeValdGit provides the following top-level capabilities to CodeValdCross:
+CodeValdPubSub provides the following top-level capabilities to the CodeVald platform:
 
 ---
 
-### 1. Repository Lifecycle Management
-- **Create** a Git repository for an Agency on demand
-- **Open** an existing repository by Agency ID
-- **Archive** a repository when an Agency is deleted (non-destructive; repo moved to archive path)
-- **Purge** an archived repository permanently (operator-explicit hard delete)
+### 1. Durable Event Recording
 
-### 2. Branch-Per-Task Workflow
-- Every agent write happens on a **dedicated task branch** (`task/{task-id}`)
-- Agents are **never allowed to commit directly to `main`**
-- Task branches are created from the current `main` HEAD
-- Branches are automatically deleted after a successful merge
-
-### 3. File Operations
-- **Write** any file type (text or binary) to a task branch as a Git commit
-- **Read** file content at any ref (branch, tag, or commit SHA)
-- **Delete** a file from a task branch as a Git commit
-- **List** directory contents at any ref — enables historical file browsing
-
-### 4. Merge & Conflict Resolution
-- **Fast-forward merge** when `main` has not advanced since the branch was created
-- **Auto-rebase** the task branch onto the latest `main` when fast-forward is not possible (manual cherry-pick via go-git plumbing — go-git v5 has no native rebase)
-- **Structured conflict error** returned to the caller when rebase encounters content conflicts; task branch left clean for agent retry
-
-### 5. History & Diff (UI Read Access)
-- **Commit log** for a file or path — ordered newest-first
-- **Diff** between any two refs — per-file changes with unified diff text
-- All history operations are read-only and safe for concurrent access
-
-### 6. Pluggable Storage Backends
-- **Filesystem** (default) — one real `.git` directory per Agency under a configurable base path
-- **ArangoDB** — custom `storage.Storer` implementation; object DAG stored in collections; survives container restarts without a mounted volume
+Every event published to CodeValdPubSub is written to ArangoDB before any routing occurs. Events survive service restarts. No event is ever in-memory-only.
 
 ---
 
-## What CodeValdGit Does NOT Do
+### 2. Hierarchical Topic Routing
+
+Topics follow a dot-separated hierarchy that embeds the agency and entity context:
+
+```
+<service>.<agencyID>.<entity-segment-1>.<entity-segment-2>….<action>
+```
+
+Examples:
+```
+work.agency-abc.project-x.task-001.createbranch
+work.agency-abc.project-x.task-001.completed
+git.agency-abc.repo-001.branch-042.merged
+git.agency-abc.repo-001.branch-042.conflict.detected
+agency.agency-abc.created
+agency.agency-abc.published
+```
+
+The agencyID is always the second segment. This makes agency-scoped subscriptions a first-class pattern.
+
+---
+
+### 3. Pattern Subscriptions
+
+Subscribers register a **topic pattern** rather than a fixed topic string.
+
+| Wildcard | Matches | Example pattern |
+|---|---|---|
+| `*` | Any single segment | `work.*.project-x.*.createbranch` |
+| `#` | Any remaining segments (suffix only) | `work.agency-abc.#` |
+
+---
+
+### 4. Fan-Out Delivery
+
+Multiple independent subscribers can hold overlapping patterns. Each receives its own copy of every matching event. Publishers do not need to know who is listening.
+
+---
+
+### 5. At-Least-Once Delivery with Replay
+
+PubSub guarantees at-least-once delivery. Unacknowledged events are retried. Subscribers must be idempotent and deduplicate by event ID.
+
+Historical events are queryable by topic pattern, agencyID, and time range — enabling new services to bootstrap their state without a database snapshot.
+
+---
+
+### 6. CodeValdCross Integration
+
+PubSub registers its HTTP routes with CodeValdCross via the standard 20-second heartbeat registrar. No Cross recompile is needed when routes are added.
+
+---
+
+## What CodeValdPubSub Does NOT Do
 
 | Out of Scope | Reason |
 |---|---|
-| Remote Git hosting (GitHub / GitLab push/pull) | Local repos only for MVP |
-| Authentication / access control | Handled by CodeValdCross's policy layer |
-| Pull request UI | Merge is programmatic, not UI-driven |
-| HTTP API | This is a Go library, not a service |
+| Exactly-once delivery | At-least-once is sufficient; subscribers are required to be idempotent |
+| Ordered delivery across topics | Intra-topic ordering is preserved; cross-topic ordering is not guaranteed |
+| Message transformation | PubSub routes events as published; no payload mutation |
+| Authorization enforcement | Handled by CodeValdCross's policy layer (deferred until CodeValdOrg lands) |
+| General-purpose byte payloads | Events are structured CodeVald lifecycle events; no arbitrary binary |

@@ -1,98 +1,19 @@
-# CodeValdGit — Transaction Boundaries and Idempotency
+# CodeValdPubSub — Atomicity and Idempotency
 
-> Source: `review/review.md` (March 2026 design review)
-> Status: Defined — implementation tracked in `mvp.md` (GIT-013)
+## Publish Atomicity
 
----
+`Publish` must write the `PubSubEvent` record to ArangoDB **before** creating any `PubSubDelivery` records or pushing to subscribers. If the event write fails, the call returns an error and no side effects occur.
 
-## Problem
+If the event write succeeds but delivery record creation partially fails (network partition mid-fan-out), the delivery loop will not pick up deliveries that were never created. This is a known gap in v1: delivery records that fail to write are not retried. In practice, ArangoDB writes within the same service process are highly reliable; this gap is accepted for MVP.
 
-`MergeBranch` is a multi-step operation with a single visibility gate
-(`advanceBranchHead`). A process crash between steps produces ambiguous state:
+## Idempotent Publish
 
-| Step | Crash here → state |
-|---|---|
-| 1–3 reads | Nothing written — safe to retry |
-| Speculative object writes | Orphaned immutable entities — safe to retry (idempotent) |
-| `advanceBranchHead` | **Merge visible** — must not re-execute |
-| `DeleteBranch` (caller) | Merge done, branch leaked — caller retries delete |
+Publishers may supply an `IdempotencyKey` (string, max 128 chars) in `PublishRequest`. PubSub checks for an existing `PubSubEvent` where `(agency_id, topic, idempotency_key)` matches and `published_at > now - 24h` before inserting. If found, the existing event is returned and no new deliveries are created.
 
----
+The idempotency window is 24 hours. After 24 hours, the same key can be used again for a new event.
 
-## Atomicity Rules
+Publishers that do not supply an idempotency key get no deduplication — duplicate publishes create duplicate events and deliveries. Publishers should always supply an idempotency key when their publish call may be retried (network errors, process restarts).
 
-| Rule | Rationale |
-|---|---|
-| Object writes before `advanceBranchHead` are speculative and idempotent | Content-addressed; re-writing the same content is a no-op |
-| Only `advanceBranchHead` makes the merge visible | Single atomic write = the visibility gate |
-| `DeleteBranch` must only be called after `advanceBranchHead` succeeds | Prevents losing work on a crash between the two |
-| Every merge attempt carries an idempotency key | Enables safe retry without re-executing a completed merge |
+## ACK Idempotency
 
----
-
-## `MergeRequest` — Idempotency Key
-
-Replace the bare `branchID string` parameter on `GitManager.MergeBranch` with
-a `MergeRequest` struct. Add to `models.go`:
-
-```go
-// MergeRequest carries the inputs for a [GitManager.MergeBranch] call.
-type MergeRequest struct {
-    // BranchID is the entitygraph ID of the branch to merge into the
-    // repository's default branch.
-    BranchID string
-
-    // IdempotencyKey is an optional caller-provided key for safe retry.
-    // A completed merge with the same key returns the cached result without
-    // re-executing. Recommended value: taskID + ":" + forkPointCommitID.
-    IdempotencyKey string
-}
-```
-
-Update `git.go`:
-
-```go
-// MergeBranch merges req.BranchID into the repository's default branch.
-// If req.IdempotencyKey matches a previously completed merge, the cached
-// result is returned without re-executing.
-MergeBranch(ctx context.Context, req MergeRequest) (Branch, error)
-```
-
----
-
-## Retry Safety Matrix
-
-| Operation | Safe to retry? | Behaviour on duplicate |
-|---|---|---|
-| `InitRepo` | Yes | Returns `ErrRepoAlreadyExists` |
-| `CreateBranch` | Yes | Returns `ErrBranchExists` |
-| `CommitFiles` | Yes | Idempotent if content + message unchanged |
-| `MergeBranch` | Yes (with `IdempotencyKey`) | Returns cached result if already merged |
-| `DeleteBranch` | Yes | Returns `ErrBranchNotFound` — caller ignores |
-
----
-
-## Idempotency Store
-
-V1: a `sync.Map` keyed by `IdempotencyKey` → `Branch` result, held on the
-`gitManager` instance. Cleared on process restart (acceptable for V1
-single-instance deployment).
-
-Future: persist idempotency records as entities in the entitygraph so they
-survive restarts, with a TTL-based cleanup policy.
-
----
-
-## Caller Contract (CodeValdCross / gRPC server)
-
-The gRPC `MergeTaskBranch` handler must:
-
-1. Construct `IdempotencyKey = taskID + ":" + forkPointCommitID`.
-2. Call `GitManager.MergeBranch(ctx, MergeRequest{BranchID, IdempotencyKey})`.
-3. On success → call `GitManager.DeleteBranch(ctx, branchID)`.
-4. On `ErrMergeConcurrencyConflict` → retry `MergeBranch` (key unchanged).
-5. On `ErrMergeConflict` → surface conflict files to caller; do **not** delete branch.
-
-See [architecture-concurrency.md](architecture-concurrency.md) for the lock
-that guards step 2, and [architecture-merge.md](architecture-merge.md) for the
-squash strategy executed inside it.
+`Ack(subscriptionID, eventID)` is idempotent. Calling it multiple times for the same pair is a no-op after the first successful ACK.

@@ -1,427 +1,265 @@
-# CodeValdGit — Documentation Layer Requirements
+# CodeValdPubSub — Topic Catalog
 
-## 1. Purpose
-
-Introduce a **documentation layer** to CodeValdGit that enables keyword-based
-discovery across Git objects (Blobs, Branches, Commits). AI agents can query
-the graph by keyword and receive all related files — documentation and code
-alike — to build rich working context for tasks.
+This document is the authoritative reference for all event topics published by CodeVald platform services. Every entry includes the topic template, the publishing service, the trigger condition, the payload type, and example subscription patterns.
 
 ---
 
-## 2. Design Decisions (Resolved)
-
-### DR-001: Storage Model — ArangoDB Graph Alongside Git Data
-
-The documentation layer lives as an **ArangoDB graph layer** alongside the
-existing Git entity graph. It is **not** embedded inside the Git repo as
-metadata files. New TypeDefinitions will be added to the existing
-`schema.go` (`DefaultGitSchema`), keeping the same schema ID `git-schema-v1`.
-
-### DR-002: Scope — Per-Repo, Not a Separate Service
-
-Documents are **normal files committed into a repo** (e.g., files under a
-`documentation/` path). They participate in the standard branch-per-task
-workflow — committed on task branches, merged to `main`, versioned like any
-other file. There is **no separate Document entity type**; documentation
-files are simply Blobs with documentation edges.
-
-### DR-003: Primary Consumer — AI Agents
-
-The primary consumer is **AI agents** building context for tasks. When an
-agent receives a task, it queries "give me all files related to keyword X"
-and receives a set of Blobs (both documentation markdown and code files),
-Branches, and Commits.
-
-Human users (via CodeValdHi / CodeValdGitFrontend) are a secondary
-beneficiary. API should prioritise bulk retrieval and machine-readable
-responses.
-
-### DR-004: Node Types — Keyword Only (v1)
-
-No new Document entity type. The only **new entity type** is:
-
-- **Keyword** — a hierarchical discovery label node (e.g.,
-  `"authentication"`, `"grpc"`, `"merge-conflict"`, `"pull-flow"`)
-
-All other nodes already exist in the schema: Blob, Branch, Commit, Tag,
-Repository.
-
-**Explicitly out of scope for v1:**
-- Function/Symbol-level nodes (no code parsing or AST extraction)
-
-### DR-005: Edges Point to Existing Schema Types
-
-Documentation edges point directly to **existing entity types** in the
-schema — Blob, Branch, and Commit. No new lightweight reference nodes.
-
-### DR-006: Doc↔Code Mapping via Direct Blob Edges
-
-A documentation Blob can have `documents` edges pointing to the code Blobs
-it describes. For example:
+## Topic Naming Convention
 
 ```
-architecture-pull-flow.md ──documents──► git_impl_repo.go
-architecture-pull-flow.md ──documents──► server.go
-git_impl_repo.go ──documented_by──► architecture-pull-flow.md  (inverse)
+<service>.<agencyID>.<entity-segment-1>.<entity-segment-2>….<action>
 ```
 
-This enables graph traversal: "given this doc file, show me the code it
-documents" and vice versa.
+| Segment | Position | Description |
+|---|---|---|
+| `service` | 1 | Originating service (`work`, `git`, `agency`, `comm`, `dt`) |
+| `agencyID` | 2 | The owning agency — always present as the second segment |
+| `entity-segments` | 3…N-1 | Zero or more resource identifiers narrowing the scope (project name, task name, repo ID, branch ID, etc.) |
+| `action` | N (last) | What happened (`created`, `completed`, `merged`, `createbranch`, `conflict.detected`, …) |
 
-### DR-007: Edge Creation — Explicit API Only
+Entity segments use the resource's human-readable name where available (project name, task name) or its entitygraph ID where a name is unavailable.
 
-Edges (both `tagged_with` and `documents`) are created via **explicit API
-calls**. No frontmatter parsing, no auto-extraction from file content.
-An agent or human calls the API to create doc↔code edges and keyword tags.
+---
 
-### DR-008: Cross-Repo — Keyword-Mediated Only
+## Design Resolutions
 
-`documents`/`documented_by` edges are strictly **within the same repo**.
-Cross-repo discovery is achieved through **shared Keywords** — both repos
-tag their files with the same Keyword, and the agent finds them via
-keyword query.
+### DR-001: AgencyID in topic position 2
 
-### DR-009: Keyword Taxonomy — Free-Form with Hierarchy
+AgencyID is always the second segment. This makes the pattern `*.<agencyID>.#` a natural way to subscribe to all events for a single agency across all services. The alternative (agencyID in payload only) would require subscribers to filter in application code rather than at the routing layer.
 
-Keywords are **free-form strings** — no controlled vocabulary. Any agent
-or human can create any keyword.
+### DR-002: Entity segments use names, not IDs, where stable
 
-Keywords support **parent-child nesting** (taxonomy tree):
+Project names and task names are used in topic segments because they are stable identifiers in the CodeVald data model. Repo IDs and branch IDs are used where no stable name exists. If a name changes, previously published events retain the old name in their topic — the topic is an immutable fact about when the event occurred.
 
-```
-backend
-├── grpc
-│   ├── pull-flow
-│   └── push-flow
-├── authentication
-└── storage
-    ├── arangodb
-    └── filesystem
-```
+### DR-003: Action is always the last segment
 
-**Cascading search is the default**: querying keyword `"backend"` returns
-all entities tagged with `"backend"` AND all entities tagged with any
-descendant keyword (`"grpc"`, `"pull-flow"`, etc.).
+The action is the terminal segment. This allows `<prefix>.#` subscriptions to receive all event types under a given entity hierarchy, and `<prefix>.<action>` subscriptions to receive only a specific event type.
 
-### DR-010: Edges Follow Git Lifecycle
+### DR-004: Cross-service workflow events are published by the initiating service
 
-Documentation edges are **soft state** — they follow the same lifecycle as
-the Git objects they're attached to. They are **not** permanent metadata.
+When CodeValdWork starts a task, it publishes `work.<agencyID>.<projectName>.<taskName>.createbranch` — not CodeValdGit. The event records the intent from the work-management perspective. CodeValdGit subscribes to this topic and performs the branch creation. This preserves publisher autonomy: CodeValdWork does not need to call CodeValdGit directly.
 
-| Scenario | Edge behaviour |
+---
+
+## 1. CodeValdWork Topics
+
+### `work.<agencyID>.<projectName>.<taskName>.created`
+
+| Field | Value |
 |---|---|
-| Branch merged to `main` | Edges on branch Blobs are **replicated** to corresponding `main` Blobs (matched by `path`), additive on top of existing `main` edges |
-| Branch deleted without merge | Edges on branch Blobs are **deleted** — they never reach `main` |
-| Merge reverted (revert commit) | Edges that were replicated from the branch are **removed** from `main` Blobs |
-| File deleted in a commit | `tagged_with` and `documents` edges on that Blob are **removed** |
-| File renamed/moved | Edges on old-path Blob are **migrated** to new-path Blob |
+| **Publisher** | CodeValdWork |
+| **Trigger** | A Task entity is successfully created |
+| **Payload** | `TaskCreatedPayload{TaskID, Priority}` |
 
-**Merge edge replication strategy**: after merge, scan branch Blobs for
-`tagged_with` and `documents` edges, find the corresponding `main` Blob by
-**path** (same `path` property), and create new edges from the `main` Blob
-to the same Keyword/target entities.
-
-### DR-011: Query Match Mode — Caller's Choice
-
-When searching by multiple keywords, the caller specifies a `match_mode`:
-
-- **AND** — return only entities tagged with ALL specified keywords
-- **OR** — return entities tagged with ANY specified keyword
-
-### DR-012: Schema Version — No Bump
-
-New types are added directly to the existing `git-schema-v1`. No deployed
-instances exist, so no migration or version bump is needed.
-
-### DR-013: File Dependency Edges — Manual, Blob-to-Blob
-
-Blobs can declare **dependency relationships** to other Blobs within the
-same repo via `depends_on` / `imported_by` edges. For example:
-
+**Subscription examples:**
 ```
-repo.go ──depends_on──► errors.go
-errors.go ──imported_by──► repo.go  (inverse, auto-created)
+work.agency-abc.#                          # all work events for agency-abc
+work.agency-abc.project-x.#               # all work events for project-x in agency-abc
+work.agency-abc.project-x.task-001.created
+work.*.*.*.created                         # all task creation events across all agencies
 ```
 
-These edges follow the **same rules** as `documents`/`documented_by`:
+---
 
-- **Branch-scoped**: created on task-branch Blobs, replicated to `main`
-  on merge via path-based matching (DR-010)
-- **Same-repo only**: no cross-repo dependency edges (DR-008 applies)
-- **Manual creation**: edges are created via explicit API calls (DR-007
-  applies). No automatic import parsing in v1 — an agent or human
-  declares the dependency
-- **Git lifecycle**: deleted on branch delete, removed on revert,
-  migrated on rename (DR-010 applies)
+### `work.<agencyID>.<projectName>.<taskName>.updated`
 
-### DR-023: Blob→Blob Edges — Collapsed to `references` / `referenced_by` with `descriptor` Property
-
-The original four named edge types (`documents`, `documented_by`, `depends_on`,
-`imported_by`) are **replaced** by a single generic Blob→Blob pair:
-
-| Edge name | Direction | Inverse |
-|---|---|---|
-| `references` | from → to | `referenced_by` |
-| `referenced_by` | to → from (auto) | `references` |
-
-Both edges carry a `descriptor` string property (required) that names the
-semantic role of the relationship. The vocabulary is **open** — agents may
-invent new descriptors — but should **reuse existing labels before coining
-new ones**. Well-known values:
-
-| Descriptor | Meaning |
+| Field | Value |
 |---|---|
-| `documents` | This doc file describes the target code file |
-| `depends_on` | This file imports / depends on the target file |
-| `contradicts` | This file's content conflicts with the target |
-| `references` | General cross-reference without a stronger semantic |
-| `test_for` | This test file covers the target implementation file |
-| `obsoletes` | This file supersedes the target file |
-
-**Rationale**: The descriptor is data, not schema. Adding a new relationship
-type previously required a schema change; now agents simply pass a new string.
-The `RelationshipDefinition.Properties` field added to SharedLib carries this
-declaration so tooling can surface it.
-
-### DR-024: Inverse Edge Copies `descriptor` Property
-
-When `entitygraph.DataManager.CreateRelationship` auto-creates the inverse
-(`referenced_by`) edge, it **copies the full `Properties` map** from the
-originating `references` edge. This ensures that inbound graph traversal
-("who references this file, and how?") returns the same descriptor context
-as outbound traversal ("what does this file reference, and how?").
-
-The `referenced_by` `RelationshipDefinition` explicitly declares the same
-`descriptor` property so schema tooling documents it correctly.
+| **Publisher** | CodeValdWork |
+| **Trigger** | A non-status mutable field on a Task changes |
+| **Payload** | `TaskUpdatedPayload{TaskID, ChangedFields[]string}` |
 
 ---
 
-## 3. Entity Types (New)
+### `work.<agencyID>.<projectName>.<taskName>.status.changed`
 
-### Keyword
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdWork |
+| **Trigger** | Every successful task status transition |
+| **Payload** | `TaskStatusChangedPayload{TaskID, From TaskStatus, To TaskStatus}` |
 
-A hierarchical discovery label used for keyword-based search across Git
-objects. Keywords can be nested in parent-child trees for taxonomy.
-
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `name` | string | ✅ | The keyword label, e.g. `"authentication"`, `"pull-flow"` |
-| `description` | string | | Optional explanation of what this keyword covers |
-| `scope` | string | | `"agency"` (spans all repos in the agency) or `"repo"` (repo-local) |
-| `created_at` | string | | ISO 8601 timestamp |
-| `updated_at` | string | | ISO 8601 timestamp |
-
-**Storage collection**: `git_keywords`
-
-**Relationships**:
-
-| Relationship | To | ToMany | Inverse | Description |
-|---|---|---|---|---|
-| `has_child` | Keyword | true | `belongs_to_parent` | Child keywords in the taxonomy tree |
-| `belongs_to_parent` | Keyword | false | `has_child` | Parent keyword (optional; root keywords have none) |
+**Note:** Also fires for terminal statuses. `work.*.*.*.completed` fires additionally (see below).
 
 ---
 
-## 4. Edge Types (New)
+### `work.<agencyID>.<projectName>.<taskName>.completed`
 
-### `tagged_with` — Keyword Tagging
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdWork |
+| **Trigger** | Task reaches a terminal status (completed, failed, cancelled) |
+| **Payload** | `TaskCompletedPayload{TaskID, TerminalStatus, CompletedAt string}` |
 
-Any existing entity can be tagged with a Keyword for discovery.
+Published **in addition to** `work.*.*.*.status.changed`.
 
-| From | Edge | To | Description |
-|---|---|---|---|
-| Blob | `tagged_with` | Keyword | Tag a file (doc or code) with a keyword |
-| Branch | `tagged_with` | Keyword | Tag a branch with a keyword |
-| Commit | `tagged_with` | Keyword | Tag a commit with a keyword |
-
-### `references` / `referenced_by` — Generic Blob→Blob Edges
-
-A single generic pair replaces the former `documents`/`documented_by` and
-`depends_on`/`imported_by` edge types (DR-023). Both edges carry a
-`descriptor` string property that names the semantic role.
-
-| From | Edge | To | Required property | Description |
-|---|---|---|---|---|
-| Blob | `references` | Blob | `descriptor` | Forward edge; caller supplies the descriptor |
-| Blob | `referenced_by` | Blob | `descriptor` | Inverse — auto-created; `descriptor` copied from the forward edge (DR-024) |
-
-**Example descriptors**: `"documents"`, `"depends_on"`, `"contradicts"`,
-`"references"`, `"test_for"`, `"obsoletes"`.
-
-Agents should query existing descriptors in use before creating new ones.
-
----
-
-## 5. Query API
-
-### SearchByKeywords
-
-Search for entities tagged with one or more keywords. Cascading search
-traverses the keyword hierarchy by default.
-
-**Input**:
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `keywords` | []string | ✅ | One or more keyword names to search for |
-| `match_mode` | string | | `"AND"` (all keywords) or `"OR"` (any keyword). Default: `"OR"` |
-| `repo_id` | string | | Optional filter: restrict results to a specific repository |
-| `entity_types` | []string | | Optional filter: e.g. `["Blob", "Branch"]`. Default: all types |
-| `cascade` | bool | | Whether to include descendant keywords. Default: `true` |
-
-**Output**: List of matching entities (Blobs, Branches, Commits) with their
-keyword tags.
-
-### Doc→Code Traversal
-
+**Subscription examples:**
 ```
-Query: "what code does architecture-pull-flow.md document?"
-Traversal: Blob{path="documentation/.../architecture-pull-flow.md"} ──documents──► Blob*
-Result: List of code Blobs
-```
-
-### Code→Doc Traversal
-
-```
-Query: "what documentation exists for server.go?"
-Traversal: Blob{path="internal/server/server.go"} ──documented_by──► Blob*
-Result: List of documentation Blobs
+work.agency-abc.*.*.completed              # all completed tasks in agency-abc
+work.*.*.*.completed                       # all completed tasks platform-wide
 ```
 
 ---
 
-## 6. Frontend Graph Navigation Decisions
+### `work.<agencyID>.<projectName>.<taskName>.assigned`
 
-### DR-014: Graph Library — react-force-graph-2d + d3-hierarchy
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdWork |
+| **Trigger** | An `assigned_to` edge is created or replaced on a Task |
+| **Payload** | `TaskAssignedPayload{TaskID, AgentID}` |
 
-Use **`react-force-graph-2d`** (wraps D3 force simulation, React-friendly) for
-the relationship graph and **`d3-hierarchy`** (math-only, React renders SVG) for
-the keyword taxonomy tree. Avoids D3-vs-React DOM conflicts.
+---
 
-### DR-015: View Strategy — Sidebar + Full-Page Explorer
+### `work.<agencyID>.<projectName>.<taskName>.createbranch`
 
-Two views coexist:
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdWork |
+| **Trigger** | Task transitions to `in_progress`; signals that a Git branch should be created |
+| **Payload** | `TaskBranchRequestPayload{TaskID, ProjectName, TaskName, BranchName string}` |
 
-1. **Sidebar panel on file viewer** — shows the current file's immediate
-   relationships (docs, dependencies, keywords). Interactive — supports
-   inline edge creation/removal without leaving the file viewer.
-2. **Full-page graph explorer** — dedicated route at
-   `/agencies/:id/repositories/:repo/branches/:branch/graph`. Split view:
-   keyword taxonomy tree on the left, force-directed graph on the right.
-   Clicking a keyword in the tree populates the graph with its tagged entities.
+**This is a workflow event.** CodeValdGit subscribes to `work.<agencyID>.*.*.createbranch` and creates the corresponding task branch in the agency's Git repository. CodeValdWork does not call CodeValdGit directly.
 
-### DR-016: Sidebar Edge Creation UX
-
-- **Keywords**: autocomplete search — user types keyword name, gets suggestions,
-  selects to create `tagged_with` edge.
-- **File-to-file edges** (`documents`, `depends_on`): drag a file from the
-  existing file tree onto the graph to create the edge.
-
-### DR-017: Edge Lifecycle — Branch-Scoped
-
-All documentation edges are **branch-scoped**. File navigation is always per
-branch, so edge creation follows the same model. Edges created on a task branch
-are replicated to `main` on merge (DR-010). The sidebar should display which
-branch the user is on.
-
-### DR-018: Neighborhood Query — Configurable Depth 1-3
-
-A single graph endpoint accepts `?depth=N` (1-3). Depth 1 for sidebar
-(immediate neighbors), depth 2-3 for the full-page explorer (transitive
-relationships).
-
-### DR-019: Keyword Management — Inline + Dedicated Page
-
-- **Inline**: right-click / button controls on the graph explorer's keyword tree
-  for quick create/rename/delete/reparent.
-- **Dedicated page**: `/agencies/:id/repositories/:repo/keywords` for bulk
-  operations and full CRUD table/tree view.
-
-### DR-020: API Response Shape — Generic Graph Format
-
-```json
-{
-  "nodes": [
-    { "id": "entity-123", "type": "Blob", "label": "server.go", "properties": { "path": "internal/server/server.go" } }
-  ],
-  "edges": [
-    { "id": "edge-456", "source": "entity-123", "target": "kw-789", "label": "tagged_with" }
-  ]
-}
+**Subscription examples:**
+```
+work.agency-abc.*.*.createbranch          # all branch creation requests for agency-abc
+work.agency-abc.project-x.*.createbranch  # branch creation requests for project-x
 ```
 
-Frontend maps `type` to colors/icons. Backend is graph-library agnostic.
+---
 
-### DR-021: Performance — Lazy Expand + Hard Cap
+### `work.<agencyID>.relationship.created`
 
-- **Lazy expand**: show depth-1 neighbors initially; user clicks "expand" on a
-  node to fetch its neighbors (progressive disclosure).
-- **Hard cap**: API caps response at 100 nodes; frontend shows "N more results"
-  with option to filter.
-
-### DR-022: Visual Encoding — Icons + Colors + Distinct Edges
-
-**Nodes** (icon inside colored circle):
-
-| Type | Color | Icon |
-|---|---|---|
-| Blob | Blue | File icon |
-| Keyword | Orange | Tag icon |
-| Commit | Green | Git-commit icon |
-| Branch | Purple | Git-branch icon |
-
-**Edges** (color + line style):
-
-| Edge Type | Color | Style |
-|---|---|---|
-| `tagged_with` | Orange | Dashed |
-| `documents` | Blue | Solid |
-| `depends_on` | Red | Solid |
-| `has_child` | Gray | Dotted |
-
-Accessible for colorblind users via shape/icon + line style differentiation.
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdWork |
+| **Trigger** | A whitelisted graph edge is created between Work entities |
+| **Payload** | `RelationshipCreatedPayload{FromID, ToID, Label string}` |
 
 ---
 
-## 7. HTTP API Endpoints (Documentation Layer)
+## 2. CodeValdGit Topics
 
-### Keyword CRUD
+### `git.<agencyID>.<repoID>.created`
 
-| Method | Route | Purpose |
-|---|---|---|
-| `POST` | `/git/{agencyId}/repositories/{repoName}/keywords` | Create keyword |
-| `GET` | `/git/{agencyId}/repositories/{repoName}/keywords` | List all keywords (flat) |
-| `GET` | `/git/{agencyId}/repositories/{repoName}/keywords/tree` | Full keyword taxonomy tree |
-| `GET` | `/git/{agencyId}/repositories/{repoName}/keywords/{keywordId}` | Get single keyword |
-| `PUT` | `/git/{agencyId}/repositories/{repoName}/keywords/{keywordId}` | Update keyword (rename, reparent) |
-| `DELETE` | `/git/{agencyId}/repositories/{repoName}/keywords/{keywordId}` | Delete keyword |
-
-### Edge Management (Branch-Scoped)
-
-| Method | Route | Purpose |
-|---|---|---|
-| `POST` | `/git/{agencyId}/repositories/{repoName}/branches/{branchId}/edges` | Create edge (`tagged_with`, `documents`, `depends_on`) |
-| `DELETE` | `/git/{agencyId}/repositories/{repoName}/branches/{branchId}/edges/{edgeId}` | Remove edge |
-
-### Graph Queries (Branch-Scoped)
-
-| Method | Route | Purpose |
-|---|---|---|
-| `GET` | `/git/{agencyId}/repositories/{repoName}/branches/{branchId}/graph/{entityId}` | Neighborhood query (`?depth=1-3`) |
-| `GET` | `/git/{agencyId}/repositories/{repoName}/branches/{branchId}/graph/search` | SearchByKeywords (`?keywords=X,Y&match_mode=AND\|OR&cascade=true`) |
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdGit |
+| **Trigger** | `InitRepo` completes successfully |
+| **Payload** | `RepoCreatedPayload{RepoID, Name string}` |
 
 ---
 
-## 8. Open Questions (Research Gaps)
+### `git.<agencyID>.<repoID>.imported`
 
-All questions resolved. ✅
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdGit |
+| **Trigger** | Async `ImportRepo` job completes successfully |
+| **Payload** | `RepoImportedPayload{JobID, RepoID string}` |
 
-| # | Question | Status |
-|---|---|---|
-| ~~OQ-001~~ | ~~Cross-repo edges~~ | ✅ **Resolved** — no cross-repo edges; keyword-mediated only (DR-008) |
-| ~~OQ-002~~ | ~~Keyword taxonomy~~ | ✅ **Resolved** — free-form with parent-child hierarchy (DR-009) |
-| ~~OQ-003~~ | ~~Keyword node properties~~ | ✅ **Resolved** — name, description, scope, timestamps (Section 3) |
-| ~~OQ-004~~ | ~~Query API design~~ | ✅ **Resolved** — SearchByKeywords with AND/OR match_mode (Section 5, DR-011) |
-| ~~OQ-005~~ | ~~Blob identity across versions~~ | ✅ **Resolved** — edges replicated on merge by path; follow Git lifecycle (DR-010) |
-| ~~OQ-006~~ | ~~Schema version~~ | ✅ **Resolved** — no bump; add to existing git-schema-v1 (DR-012) |
+---
+
+### `git.<agencyID>.<repoID>.import.failed`
+
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdGit |
+| **Trigger** | Async `ImportRepo` job fails |
+| **Payload** | `RepoImportFailedPayload{JobID, ErrorMessage string}` |
+
+---
+
+### `git.<agencyID>.<repoID>.import.cancelled`
+
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdGit |
+| **Trigger** | Async `ImportRepo` job is cancelled |
+| **Payload** | `RepoImportCancelledPayload{JobID string}` |
+
+---
+
+### `git.<agencyID>.<repoID>.<branchID>.fetched`
+
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdGit |
+| **Trigger** | Async `FetchBranch` job completes successfully |
+| **Payload** | `BranchFetchedPayload{JobID, BranchID, RepoID string}` |
+
+---
+
+### `git.<agencyID>.<repoID>.<branchID>.merged`
+
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdGit |
+| **Trigger** | A branch is successfully merged into the repository default branch |
+| **Payload** | `BranchMergedPayload{BranchID, RepoID string}` |
+
+**Subscription examples:**
+```
+git.agency-abc.*.*.merged                  # all branch merges in agency-abc
+git.*.*.*.merged                           # all branch merges platform-wide
+```
+
+---
+
+### `git.<agencyID>.<repoID>.<branchID>.conflict.detected`
+
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdGit |
+| **Trigger** | `MergeBranch` encounters a conflict that cannot be auto-resolved |
+| **Payload** | `MergeConflictPayload{BranchID string, ConflictingFiles []string}` |
+
+---
+
+## 3. CodeValdAgency Topics
+
+### `agency.<agencyID>.created`
+
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdAgency |
+| **Trigger** | A new Agency entity is created |
+| **Payload** | `AgencyCreatedPayload{AgencyID, Name string}` |
+
+---
+
+### `agency.<agencyID>.published`
+
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdAgency |
+| **Trigger** | An `AgencyPublication` (versioned snapshot) is created from a draft |
+| **Payload** | `AgencyPublishedPayload{AgencyID, PublicationID, Version string}` |
+
+---
+
+### `agency.<agencyID>.promoted`
+
+| Field | Value |
+|---|---|
+| **Publisher** | CodeValdAgency |
+| **Trigger** | A draft is promoted to the live Agency entity |
+| **Payload** | `AgencyPromotedPayload{AgencyID, DraftID string}` |
+
+---
+
+## 4. Subscription Pattern Reference
+
+| Pattern | Receives |
+|---|---|
+| `*.agency-abc.#` | All events for agency-abc across all services |
+| `work.agency-abc.#` | All CodeValdWork events for agency-abc |
+| `work.agency-abc.project-x.#` | All CodeValdWork events for project-x |
+| `work.agency-abc.project-x.task-001.#` | All events for a single task |
+| `work.*.*.*.createbranch` | Branch creation requests across all agencies |
+| `work.*.*.*.completed` | All task completions across all agencies |
+| `git.agency-abc.*.*.merged` | All branch merges in agency-abc |
+| `git.*.*.*.conflict.detected` | All merge conflicts platform-wide |
+| `agency.*.created` | All new agency creations |
+| `#` | All events (operator / monitoring use) |

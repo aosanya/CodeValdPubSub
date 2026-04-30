@@ -1,95 +1,38 @@
-# CodeValdGit — Concurrency and Atomic Ref Updates
+# CodeValdPubSub — Concurrency Model
 
-> Source: `review/review.md` (March 2026 design review)
-> Status: Defined — implementation tracked in `mvp.md` (GIT-011)
+## 1. Concurrent Fan-Out
 
----
+When `Publish` is called, PubSub fans out delivery to all matching subscriptions. Deliveries to different subscribers are dispatched concurrently — delivery to subscriber A does not block delivery to subscriber B.
 
-## Problem
-
-`MergeBranch` in `git_impl_repo.go` explicitly defers concurrency to the
-caller ("callers are responsible for coordinating concurrent writes at the
-application layer"). Without enforcement, two concurrent `MergeBranch` calls
-for the same agency race to advance the same default-branch HEAD pointer,
-causing a **lost update** — the second writer silently overwrites the first.
+Each `PubSubDelivery` record is written to ArangoDB before the push attempt. This ensures that even if the push goroutine is interrupted mid-flight, the delivery loop will retry from the durable record.
 
 ---
 
-## Decision
+## 2. Subscription Index Concurrency
 
-| Rule | Scope |
-|---|---|
-| Object writes (Commit, Tree, Blob entities) are append-only and idempotent — safe to race | Global |
-| Branch HEAD updates use compare-and-swap (CAS) — update only if current value matches expected | Per-branch |
-| Default-branch merges are serialised per agency — one active merge per repository at a time | Per-agency |
-| Branch deletion requires expected-HEAD validation — reject if HEAD has changed since read | Per-branch |
+The in-memory subscription index (`router.Index`) is read by concurrent `Publish` calls and written by `Subscribe` and `DeleteSubscription`. The index is protected by a `sync.RWMutex`:
 
----
+- `Match(topic)` → `RLock` (concurrent reads allowed)
+- `Add(pattern, id)` → `Lock` (exclusive write)
+- `Remove(id)` → `Lock` (exclusive write)
 
-## `RefLocker` Interface
-
-Add to `git.go`:
-
-```go
-// RefLocker serialises mutations to the default branch within an agency.
-// The V1 default implementation is an in-process sync.Mutex keyed by agencyID.
-// A distributed lock (ArangoDB document transactions, Redis SETNX) can be
-// substituted without changing the interface.
-type RefLocker interface {
-    // WithMergeLock acquires an exclusive lock for agencyID, executes fn,
-    // then releases the lock. Returns ctx.Err() if the context is cancelled
-    // while waiting.
-    WithMergeLock(ctx context.Context, agencyID string, fn func() error) error
-}
-```
-
-`gitManager` accepts a `RefLocker` via `NewGitManager`. `MergeBranch` wraps
-the entire HEAD-advance operation inside `RefLocker.WithMergeLock`.
+Write operations on the index are fast (segment-tree insert/delete) and do not block reads for more than microseconds.
 
 ---
 
-## CAS in `advanceBranchHead`
+## 3. Delivery Loop Isolation
 
-The helper must pass the **expected** current `head_commit_id` to
-`entitygraph.UpdateEntity` and return `ErrMergeConcurrencyConflict` if the
-document has been modified since the read. In ArangoDB this maps to `_rev`
-optimistic locking.
+The delivery loop runs as a single background goroutine. It does not share mutable state with the gRPC handler goroutines beyond the ArangoDB collections (which provide their own transaction isolation). The loop reads from `pubsub_deliveries` using an AQL query with `FOR … FILTER … LIMIT` to bound each poll batch.
 
-Add to `errors.go`:
-
-```go
-// ErrMergeConcurrencyConflict is returned by MergeBranch when the default
-// branch HEAD was modified between the read and the compare-and-swap write.
-// The caller should retry after re-reading the current branch state.
-var ErrMergeConcurrencyConflict = errors.New("merge concurrency conflict: branch HEAD changed during merge")
-```
+The loop does not hold locks on the subscription index. If a subscription is cancelled between when the loop reads a delivery record and when it attempts the push, the push is attempted (and may fail); the cancellation is detected on the next retry when the subscription status is checked.
 
 ---
 
-## V1 Scope
+## 4. PubSubManager Safety
 
-| Item | V1 choice |
-|---|---|
-| `RefLocker` implementation | In-process `sync.Mutex` keyed by `agencyID` — correct for single-instance deployment |
-| CAS | Expected `head_commit_id` passed through `advanceBranchHead`; `_rev` check in ArangoDB |
-| Distributed lock | Documented as future extension; interface does not change when added |
+`PubSubManager` implementations must be safe for concurrent use. The concrete implementation holds:
+- An `entitygraph.DataManager` (concurrency-safe by contract)
+- A `router.Index` (protected by `sync.RWMutex`)
+- No other shared mutable state
 
----
-
-## Sequence: Serialised Merge
-
-```
-caller → WithMergeLock(agencyID)
-           │
-           ├── read default-branch HEAD  (inside lock)
-           ├── compute squash commit
-           ├── write speculative objects (idempotent, outside visibility)
-           └── advanceBranchHead(expectedHead=readValue)  ← CAS
-                    ├── success → unlock, return updated Branch
-                    └── conflict → unlock, return ErrMergeConcurrencyConflict
-```
-
-See [architecture-merge.md](architecture-merge.md) for the squash merge
-strategy that executes inside the lock, and
-[architecture-transactions.md](architecture-transactions.md) for crash-safety
-rules around the same operation.
+All methods acquire only the locks they need for the minimum required duration. No method holds both the subscription index lock and an ArangoDB write simultaneously.
