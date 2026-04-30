@@ -4,32 +4,32 @@
 # CodeValdSharedLib/ — go.mod has `replace ... => ../CodeValdSharedLib`,
 # which only resolves when SharedLib is present on disk at build time.
 #
-# Invoked from Deployment/staging/codevaldgit/Makefile as:
-#   docker build -f ../../../CodeValdGit/Dockerfile.server -t codevaldgit:staging ../../..
+# Invoked from Deployment/staging/codevaldpubsub/Makefile as:
+#   docker build -f ../../../CodeValdPubSub/Dockerfile.server -t codevaldpubsub:staging ../../..
 
 # ── Build stage ───────────────────────────────────────────────────────────────
 FROM golang:1.25-alpine AS build
 
 WORKDIR /src
 
-# SharedLib first — referenced via `replace` in CodeValdGit/go.mod.
+# SharedLib first — referenced via `replace` in CodeValdPubSub/go.mod.
 # Copied to /CodeValdSharedLib so that `../CodeValdSharedLib` resolves from /src.
 COPY CodeValdSharedLib/ /CodeValdSharedLib/
 
 # Cache dependency downloads separately from source changes.
-COPY CodeValdGit/go.mod CodeValdGit/go.sum ./
+COPY CodeValdPubSub/go.mod CodeValdPubSub/go.sum ./
 RUN go mod download
 
 # Copy the rest of the source and build the server binary.
-COPY CodeValdGit/ ./
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o /codevaldgit-server ./cmd/server
+COPY CodeValdPubSub/ ./
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o /codevaldpubsub-server ./cmd/server
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
 FROM gcr.io/distroless/static-debian12
 
-COPY --from=build /codevaldgit-server /codevaldgit-server
+COPY --from=build /codevaldpubsub-server /codevaldpubsub-server
 
 # gRPC port
-EXPOSE 50051
+EXPOSE 50055
 
-ENTRYPOINT ["/codevaldgit-server"]
+ENTRYPOINT ["/codevaldpubsub-server"]

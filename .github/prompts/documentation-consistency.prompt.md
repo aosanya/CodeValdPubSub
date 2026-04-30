@@ -28,19 +28,20 @@ The goal is to systematically check documentation consistency one area at a time
 ```yaml
 Library:
   Language: Go 1.21+
-  Module: github.com/aosanya/CodeValdGit
-  Git engine: go-git (pure Go, no git binary)
-  Storage (default): Filesystem via osfs (billy.Filesystem)
-  Storage (optional): ArangoDB via custom storage.Storer (storage/arangodb/)
+  Module: github.com/aosanya/CodeValdPubSub
+  Transport: gRPC (Protocol Buffers v3)
+  Storage: ArangoDB via custom storage backend (storage/arangodb/)
 
 Key interfaces:
-  - RepoManager: InitRepo, OpenRepo, DeleteRepo (archive), PurgeRepo (hard-delete)
-  - Repo: CreateBranch, MergeBranch, DeleteBranch, WriteFile, ReadFile,
-          DeleteFile, ListDirectory, Log, Diff
+  - Broker: Publish, Subscribe, Unsubscribe
+  - Publisher: Publish
+  - Subscriber: Subscribe, Unsubscribe
+  - Recorder: Record, History, Replay
 
-Consumer:
-  Project: CodeValdCortex
-  Integration: imported as Go module; replaces internal/git/
+Consumers:
+  - CodeValdWork: publishes work events, subscribes to git events
+  - CodeValdGit: publishes git events, subscribes to work events
+  Integration: gRPC client; or imported as Go module
 
 Documentation structure:
   1-SoftwareRequirements:

@@ -1,7 +1,7 @@
 # Binaries
 /bin/
 /main
-codevaldgit
+codevaldpubsub
 
 # Environment — never commit real credentials
 .env

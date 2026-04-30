@@ -8,35 +8,35 @@ export PATH := /usr/local/go/bin:$(PATH)
 build:
 	go build ./...
 
-## Build the production server binary to bin/codevaldgit-server.
+## Build the production server binary to bin/codevaldpubsub-server.
 build-server:
-	go build -o bin/codevaldgit-server ./cmd/server
+	go build -o bin/codevaldpubsub-server ./cmd/server
 
-## Build the dev binary to bin/codevaldgit-dev.
+## Build the dev binary to bin/codevaldpubsub-dev.
 build-dev:
-	go build -o bin/codevaldgit-dev ./cmd/dev
+	go build -o bin/codevaldpubsub-dev ./cmd/dev
 
 ## Run the production server locally. Expects env vars to be set by the caller
 ## (or the shell) — does not source .env, to mirror container behaviour.
 server: build-server
-	./bin/codevaldgit-server
+	./bin/codevaldpubsub-server
 
-## Run the dev binary with local-dev defaults (listens on :50052, talks to
+## Run the dev binary with local-dev defaults (listens on :50055, talks to
 ## localhost ArangoDB, no Cross registration). Sources .env if present so
-## GIT_ARANGO_PASSWORD etc. stay out of the source tree.
+## PUBSUB_ARANGO_PASSWORD etc. stay out of the source tree.
 dev: build-dev
 	@if [ -f .env ]; then \
 		set -a && . ./.env && set +a; \
 	fi; \
-	./bin/codevaldgit-dev
+	./bin/codevaldpubsub-dev
 
 ## Stop any running dev instance, rebuild, and run.
 dev-restart: kill dev
 
-## Stop any running instances of the codevaldgit binaries.
+## Stop any running instances of the codevaldpubsub binaries.
 kill:
 	@echo "Stopping any running instances..."
-	-@pkill -9 -f "bin/codevaldgit-" 2>/dev/null || true
+	-@pkill -9 -f "bin/codevaldpubsub-" 2>/dev/null || true
 	@sleep 1
 
 ## Stop any running instance, rebuild, and run.
@@ -45,7 +45,7 @@ restart: dev-restart
 	
 # ── Proto Codegen ─────────────────────────────────────────────────────────────
 
-## Regenerate Go stubs from proto/codevaldgit/v1/*.proto.
+## Regenerate Go stubs from proto/codevaldpubsub/v1/*.proto.
 ## Requires: buf, protoc-gen-go, protoc-gen-go-grpc on PATH.
 ## Install: go install github.com/bufbuild/buf/cmd/buf@latest
 ##          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
@@ -67,7 +67,7 @@ cover:
 ## Run ArangoDB integration tests.
 ## Loads .env if it exists, otherwise falls back to environment variables.
 ## Usage: make test-arango
-##        GIT_ARANGO_ENDPOINT=http://host:8529 GIT_ARANGO_USER=root GIT_ARANGO_PASSWORD=pw make test-arango
+##        PUBSUB_ARANGO_ENDPOINT=http://host:8529 PUBSUB_ARANGO_USER=root PUBSUB_ARANGO_PASSWORD=pw make test-arango
 test-arango:
 	@if [ -f .env ]; then \
 		set -a && . ./.env && set +a; \

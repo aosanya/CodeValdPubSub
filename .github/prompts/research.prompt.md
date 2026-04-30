@@ -5,7 +5,7 @@ agent: agent
 # Research & Documentation Gap Analysis Prompt
 
 ## Purpose
-This prompt guides a structured Q&A session to explore and complete documentation for any feature or architectural component in the **CodeValdGit** library through **one question at a time**, allowing for deep dives into specific topics.
+This prompt guides a structured Q&A session to explore and complete documentation for any feature or architectural component in the **CodeValdPubSub** library through **one question at a time**, allowing for deep dives into specific topics.
 
 ---
 

@@ -2,38 +2,38 @@
 agent: agent
 ---
 
-# Debug a CodeValdGit Issue
+# Debug a CodeValdPubSub Issue
 
 ## How to Use This Prompt
 
-When you encounter a bug in CodeValdGit, describe the failing behaviour and use the guidelines below to add targeted debug logging, isolate the cause, and clean up before merging.
+When you encounter a bug in CodeValdPubSub, describe the failing behaviour and use the guidelines below to add targeted debug logging, isolate the cause, and clean up before merging.
 
 ## Common Failure Scenarios
 
-### Scenario 1: `MergeBranch` Returns Unexpected Error
-**Symptom**: `ErrMergeConflict` returned even when files don't conflict
-**Cause**: Rebase cherry-pick order wrong, or worktree not reset after failed attempt
-**Check**: Inspect `internal/rebase/` — ensure worktree is cleaned on error path
+### Scenario 1: Event Not Delivered to Subscriber
+**Symptom**: `Publish` returns no error, but the subscriber handler is never called
+**Cause**: Topic pattern mismatch in the router, or subscriber registered after publish
+**Check**: Inspect `internal/router/` — verify pattern matching logic and subscription registration order
 
-### Scenario 2: `WriteFile` Has No Effect
-**Symptom**: File written, no error, but `ReadFile` returns old content
-**Cause**: Commit not flushed to `storage.Storer`, or wrong branch ref resolved
-**Check**: Confirm `Worktree.Commit()` is called and `storage.Storer` is not in-memory-only
+### Scenario 2: `Publish` Returns Storage Error
+**Symptom**: `Publish` fails with an ArangoDB error before dispatching to subscribers
+**Cause**: ArangoDB collection missing, credentials wrong, or `EnsureMessageIndexes` not called
+**Check**: Confirm `pubsubadb.NewBackend` succeeded and `EnsureMessageIndexes` ran on startup
 
-### Scenario 3: `OpenRepo` Returns `ErrNotFound`
-**Symptom**: Repo exists on disk but `OpenRepo` fails
-**Cause**: `base_path` misconfigured, or `.git` dir missing for filesystem backend
-**Check**: Print `filepath.Join(basePath, agencyID)` and verify directory exists
+### Scenario 3: Duplicate Event Delivery
+**Symptom**: Subscriber handler called multiple times for a single publish
+**Cause**: Multiple matching subscriptions, or subscriber registered more than once
+**Check**: Inspect subscription map — ensure `Unsubscribe` is called on teardown
 
-### Scenario 4: Context Cancellation Not Respected
-**Symptom**: Operation hangs after caller cancels context
-**Cause**: Missing `ctx.Err()` check in rebase cherry-pick loop
-**Check**: Add `ctx.Err()` check at top of each loop iteration
+### Scenario 4: Topic Validation Rejected Unexpectedly
+**Symptom**: `topic.Parse` returns `ErrInvalidTopic` for a seemingly valid topic
+**Cause**: Topic segment contains uppercase, spaces, or wrong number of dot-separated parts
+**Check**: Verify exactly 5 dot-separated lowercase segments: `service.agencyID.project.task.event`
 
-### Scenario 5: ArangoDB Backend Objects Not Persisted
-**Symptom**: Commits appear to succeed but are lost on restart
-**Cause**: ArangoDB `storage.Storer` not flushing; check `SetEncodedObject` implementation
-**Check**: Add log in `SetEncodedObject` to confirm it is being called
+### Scenario 5: Context Cancellation Not Respected
+**Symptom**: Subscriber dispatch loop hangs after context is cancelled
+**Cause**: Missing `ctx.Err()` check in goroutine dispatch loop
+**Check**: Add `ctx.Err()` check at top of each dispatch iteration
 
 ## Debug Print Guidelines
 
@@ -42,9 +42,9 @@ All debug prints MUST be prefixed with: `[TASK-ID]`
 
 ### Go
 ```go
-log.Printf("[GIT-XXX] Function called: %s with args: %+v", functionName, args)
-log.Printf("[GIT-XXX] State before: %+v", state)
-log.Printf("[GIT-XXX] Error in operation: %v", err)
+log.Printf("[PS-XXX] Function called: %s with args: %+v", functionName, args)
+log.Printf("[PS-XXX] State before: %+v", state)
+log.Printf("[PS-XXX] Error in operation: %v", err)
 ```
 ### Strategic Placement
 
@@ -52,27 +52,27 @@ Add debug prints at:
 
 1. **Function Entry Points**
    - Log function name and key parameters
-   - Example: `log.Printf("[GIT-XXX] CreateBranch called: taskID=%s", taskID)`
+   - Example: `log.Printf("[PS-XXX] Publish called: topic=%s", topic.Raw)`
 
 2. **State Changes**
    - Before and after critical state modifications
-   - Example: `log.Printf("[GIT-XXX] Cherry-pick %d/%d: commit=%s", i, total, hash)`
+   - Example: `log.Printf("[PS-XXX] Subscriber count before dispatch: %d", len(subs))`
 
 3. **Conditional Branches**
    - Log which branch is taken and why
-   - Example: `log.Printf("[GIT-XXX] Fast-forward possible=%v", canFF)`
+   - Example: `log.Printf("[PS-XXX] Pattern matched=%v topic=%s pattern=%s", matched, topic.Raw, pattern)`
 
-4. **Loop Iterations** (for rebase cherry-pick loop)
+4. **Loop Iterations** (for subscriber dispatch loop)
    - Log iteration count and key variables
-   - Example: `log.Printf("[GIT-XXX] Processing commit %d/%d: %s", i, total, hash)`
+   - Example: `log.Printf("[PS-XXX] Dispatching to subscriber %d/%d", i, total)`
 
 5. **Error Handling**
    - Log errors with context before returning
-   - Example: `log.Printf("[GIT-XXX] MergeBranch failed: %v", err)`
+   - Example: `log.Printf("[PS-XXX] Publish failed: %v", err)`
 
 6. **Return Statements** (for complex functions)
    - Log what is being returned
-   - Example: `log.Printf("[GIT-XXX] MergeBranch result: conflict files=%v", files)`
+   - Example: `log.Printf("[PS-XXX] Publish result: recorded=%v dispatched=%d", recorded, dispatched)`
 
 ### What NOT to Debug
 
@@ -92,8 +92,8 @@ Use descriptive messages that answer:
 
 **Good Example:**
 ```go
-log.Printf("[GIT-XXX] MergeBranch: taskID=%s canFF=%v commitCount=%d",
-    taskID, canFF, len(commits))
+log.Printf("[PS-XXX] Publish: topic=%s matchedSubs=%d storageOK=%v",
+    topic.Raw, len(subs), storageErr == nil)
 ```
 
 **Bad Example:**
@@ -105,17 +105,17 @@ fmt.Println("here") // No context, no task ID, not helpful
 
 Always add a comment above debug blocks:
 ```go
-// TODO: Remove debug log for GIT-XXX after issue is resolved
-log.Printf("[GIT-XXX] Debug info here")
+// TODO: Remove debug log for PS-XXX after issue is resolved
+log.Printf("[PS-XXX] Debug info here")
 ```
 
 ## Execution Steps
 
 1. **Identify Task ID** from branch or context
-2. **Analyse the failing code path** in `repo.go`, `manager.go`, or `internal/rebase/`
+2. **Analyse the failing code path** in `pubsub.go`, `manager_impl.go`, or `internal/router/`
 3. **Select strategic points** where debug prints will be most valuable
 4. **Add debug prints** with proper format and task ID prefix
-5. **Run tests** and filter output: `go test ./... 2>&1 | grep GIT-XXX`
+5. **Run tests** and filter output: `go test ./... 2>&1 | grep PS-XXX`
 6. **Explain placement** briefly — why each print was added
 
 ## Output Format
@@ -132,22 +132,8 @@ After adding debug prints, provide:
 2. Line YY: State change — logs before/after values
 3. Line ZZ: Conditional check — logs decision logic
 
-**Usage**: Run `go test -v ./... 2>&1 | grep GIT-XXX` to see output.
+**Usage**: Run `go test -v ./... 2>&1 | grep PS-XXX` to see output.
 ```
-
-## Example Request Handling
-
-**User**: "Add debug prints to track why MergeBranch is returning ErrMergeConflict unexpectedly"
-
-**Your Response**:
-1. Check git branch → Extract task ID (e.g., GIT-006)
-2. Trace `MergeBranch` → `internal/rebase/` → cherry-pick loop
-3. Add prints at:
-   - `MergeBranch` entry: log `taskID`, `main` HEAD SHA
-   - Each cherry-pick iteration: log commit SHA and result
-   - Conflict detection: log conflicting paths
-4. Use format: `log.Printf("[GIT-006] ...")`
-5. Explain what each print reveals
 
 ## Remember
 

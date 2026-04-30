@@ -20,7 +20,7 @@ CodeValdPubSub is a **Go library** — not an application. These rules reflect t
 **Always define interfaces before concrete types.**
 
 ```go
-// ✅ CORRECT — interface in root package, consumed by CodeValdWork/CodeValdGit/etc.
+// ✅ CORRECT — interface in root package, consumed by CodeValdWork/CodeValdAgency/etc.
 type Publisher interface {
     Publish(ctx context.Context, topic Topic, payload []byte) error
 }
