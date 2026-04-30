@@ -1,382 +1,143 @@
-// git.go defines the v2 flat [GitManager] interface for CodeValdGit.
+// git.go defines the [PubSubManager] interface for CodeValdPubSub.
 //
-// The v2 design replaces the nested Backend/RepoManager/Repo hierarchy with a
-// single Agency/AI-aligned interface. Each [GitManager] instance is scoped to
-// one agency; the agencyID is fixed at construction time via [NewGitManager].
+// PubSubManager is the single entry point for the pub/sub event recorder.
+// It manages three entity types (Topic, Event, Subscription) stored in the
+// ArangoDB entity graph and publishes its own lifecycle events via the
+// CrossPublisher.
 //
-// All domain operations — repository lifecycle, branches, tags, file writes,
-// and history — are methods on [GitManager]. Callers (typically a gRPC server
-// handler) hold the interface, never the concrete type.
+// Topic — a registered topic pattern, e.g. "work.*.*.*.createbranch".
+// Event — an immutable, append-only record of a published event.
+// Subscription — a service's registered interest in a topic pattern.
 //
-// The concrete [gitManager] implementation lives in git_impl_repo.go
-// (repository lifecycle, branch management, tag management) and
-// git_impl_fileops.go (file operations, commit history, diff).
+// The concrete [pubSubManager] implementation lives in git_impl_repo.go.
+// Entity converters live in git_impl_converters.go.
 // Storage is injected via [entitygraph.DataManager] so the manager is
 // backend-agnostic.
 package codevaldpubsub
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aosanya/CodeValdSharedLib/entitygraph"
 	"github.com/aosanya/CodeValdSharedLib/eventbus"
 )
 
-// GitSchemaManager is a type alias for [entitygraph.SchemaManager].
-// Used in cmd/main.go to seed [DefaultGitSchema] on startup via SetSchema.
-type GitSchemaManager = entitygraph.SchemaManager
+// PubSubSchemaManager is a type alias for [entitygraph.SchemaManager].
+// Used in cmd/main.go to seed [DefaultPubSubSchema] on startup via SetSchema.
+type PubSubSchemaManager = entitygraph.SchemaManager
 
 // CrossPublisher is a type alias for [eventbus.Publisher] — the SharedLib
 // package that unifies the publish contract across CodeVald services.
 type CrossPublisher = eventbus.Publisher
 
-// GitManager is the primary interface for Git repository management.
+// PubSubManager is the primary interface for event pub/sub recording.
 // gRPC handlers hold this interface — never the concrete type.
 //
-// Each GitManager instance is scoped to a single agency. The agencyID is
-// fixed at construction time via [NewGitManager].
+// Each PubSubManager instance is scoped to a single agency. The agencyID is
+// fixed at construction time via [NewPubSubManager].
 //
 // Implementations must be safe for concurrent use.
-type GitManager interface {
-	// ── Repository Lifecycle ──────────────────────────────────────────────────
+type PubSubManager interface {
+	// ── Topic Management ──────────────────────────────────────────────────────
 
-	// InitRepo creates a new Repository entity for this agency.
-	// Returns [ErrRepoAlreadyExists] if a repository with the same name already exists.
-	// Publishes "cross.git.{agencyID}.repo.created" after a successful write.
-	InitRepo(ctx context.Context, req CreateRepoRequest) (Repository, error)
+	// RegisterTopic creates a new Topic entity for the given pattern.
+	// Returns [ErrTopicAlreadyRegistered] if a Topic with the same pattern
+	// already exists.
+	RegisterTopic(ctx context.Context, req RegisterTopicRequest) (Topic, error)
 
-	// ListRepositories returns all Repository entities for this agency.
-	ListRepositories(ctx context.Context) ([]Repository, error)
+	// GetTopic retrieves a Topic entity by its entitygraph ID.
+	// Returns [ErrTopicNotFound] if no Topic with that ID exists.
+	GetTopic(ctx context.Context, topicID string) (Topic, error)
 
-	// GetRepository retrieves a Repository entity by its ID.
-	// Returns [ErrRepoNotInitialised] if no repository with that ID exists.
-	GetRepository(ctx context.Context, repoID string) (Repository, error)
+	// GetTopicByPattern retrieves a Topic entity by its exact pattern string.
+	// Returns [ErrTopicNotFound] if no Topic with that pattern exists.
+	GetTopicByPattern(ctx context.Context, pattern string) (Topic, error)
 
-	// GetRepositoryByName retrieves a Repository entity by its human-readable
-	// name. Returns [ErrRepoNotInitialised] if no repository with that name
-	// exists for this agency.
-	GetRepositoryByName(ctx context.Context, repoName string) (Repository, error)
+	// ListTopics returns Topic entities matching the given filter.
+	// An empty filter returns all registered topics.
+	ListTopics(ctx context.Context, filter TopicFilter) ([]Topic, error)
 
-	// GetBranchByName retrieves a Branch entity by its human-readable name.
-	// Returns [ErrBranchNotFound] if no branch with that name exists for this agency.
-	GetBranchByName(ctx context.Context, repoID string, branchName string) (Branch, error)
+	// DeleteTopic removes a Topic entity and all associated Subscription edges.
+	// Returns [ErrTopicNotFound] if no Topic with that ID exists.
+	DeleteTopic(ctx context.Context, topicID string) error
 
-	// DeleteRepo marks the specified repository entity as archived (soft delete).
-	// Returns [ErrRepoNotInitialised] if no repository with that ID exists.
-	DeleteRepo(ctx context.Context, repoID string) error
+	// ── Event Recording ───────────────────────────────────────────────────────
 
-	// PurgeRepo permanently removes all data for the specified repository.
-	// Returns [ErrRepoNotInitialised] if no repository with that ID exists.
-	PurgeRepo(ctx context.Context, repoID string) error
+	// RecordEvent creates an immutable Event entity linked to its Topic.
+	// If req.PublishedAt is empty, the current UTC time is used.
+	// Publishes [TopicEventRecorded] after a successful write.
+	RecordEvent(ctx context.Context, req RecordEventRequest) (Event, error)
 
-	// ── Branch Management ─────────────────────────────────────────────────────
+	// GetEvent retrieves an Event entity by its entitygraph ID.
+	// Returns [ErrEventNotFound] if no Event with that ID exists.
+	GetEvent(ctx context.Context, eventID string) (Event, error)
 
-	// CreateBranch creates a new Branch entity from the specified source.
-	// If req.FromBranchID is empty, the repository default branch is used.
-	// Returns [ErrRepoNotInitialised] if no repository with that ID exists.
-	// Returns [ErrBranchExists] if a branch with the given name already exists.
-	CreateBranch(ctx context.Context, req CreateBranchRequest) (Branch, error)
+	// ListEvents returns Event entities matching the given filter,
+	// ordered newest-first (by published_at).
+	ListEvents(ctx context.Context, filter EventFilter) ([]Event, error)
 
-	// GetBranch retrieves a Branch entity by its entitygraph ID.
-	// Returns [ErrBranchNotFound] if no branch with that ID exists.
-	GetBranch(ctx context.Context, branchID string) (Branch, error)
+	// ── Subscription Management ───────────────────────────────────────────────
 
-	// ListBranches returns all Branch entities for the specified repository.
-	// Returns [ErrRepoNotInitialised] if no repository with that ID exists.
-	ListBranches(ctx context.Context, repoID string) ([]Branch, error)
+	// Subscribe creates a new Subscription entity with status "active".
+	// If req.TopicID is non-empty the subscription is linked to that Topic via
+	// a subscribes_to edge. Returns [ErrTopicNotFound] if a TopicID is given
+	// but does not exist.
+	// Publishes [TopicSubscriptionCreated] after a successful write.
+	Subscribe(ctx context.Context, req SubscribeRequest) (Subscription, error)
 
-	// DeleteBranch removes a Branch entity.
-	// Returns [ErrBranchNotFound] if no branch with that ID exists.
-	// Returns an error if branchID refers to the repository's default branch.
-	DeleteBranch(ctx context.Context, branchID string) error
+	// GetSubscription retrieves a Subscription entity by its entitygraph ID.
+	// Returns [ErrSubscriptionNotFound] if no Subscription with that ID exists.
+	GetSubscription(ctx context.Context, subscriptionID string) (Subscription, error)
 
-	// MergeBranch merges the given branch into the repository's default branch.
-	// Returns the updated default Branch on success.
-	// Returns [ErrMergeConflict] with conflicting paths if a rebase conflict
-	// cannot be auto-resolved.
-	// Returns [ErrBranchNotFound] if no branch with that ID exists.
-	MergeBranch(ctx context.Context, branchID string) (Branch, error)
+	// ListSubscriptions returns Subscription entities matching the given filter.
+	// An empty filter returns all subscriptions.
+	ListSubscriptions(ctx context.Context, filter SubscriptionFilter) ([]Subscription, error)
 
-	// ── Tag Management ────────────────────────────────────────────────────────
+	// UpdateSubscription updates the mutable fields of a Subscription (status).
+	// Valid status values: "active", "paused", "cancelled".
+	// Returns [ErrSubscriptionNotFound] if no Subscription with that ID exists.
+	// Publishes [TopicSubscriptionUpdated] after a successful write.
+	UpdateSubscription(ctx context.Context, subscriptionID string, req UpdateSubscriptionRequest) (Subscription, error)
 
-	// CreateTag creates an immutable Tag entity pointing to the specified commit.
-	// Returns [ErrTagAlreadyExists] if a tag with the given name already exists.
-	// Returns [ErrBranchNotFound] if req.CommitID does not resolve to a Commit
-	// entity.
-	CreateTag(ctx context.Context, req CreateTagRequest) (Tag, error)
-
-	// GetTag retrieves a Tag entity by its entitygraph ID.
-	// Returns [ErrTagNotFound] if no tag with that ID exists.
-	GetTag(ctx context.Context, tagID string) (Tag, error)
-
-	// ListTags returns all Tag entities for the specified repository.
-	// Returns [ErrRepoNotInitialised] if no repository with that ID exists.
-	ListTags(ctx context.Context, repoID string) ([]Tag, error)
-
-	// DeleteTag removes a Tag entity.
-	// Returns [ErrTagNotFound] if no tag with that ID exists.
-	DeleteTag(ctx context.Context, tagID string) error
-
-	// ── File Operations ───────────────────────────────────────────────────────
-
-	// WriteFile commits a single file to the specified branch, creating
-	// Commit, Tree, and Blob entities in the entity graph.
-	// Returns [ErrBranchNotFound] if the branch does not exist.
-	// Returns [ErrRepoNotInitialised] if no repository entity exists.
-	WriteFile(ctx context.Context, req WriteFileRequest) (Commit, error)
-
-	// ReadFile retrieves the Blob entity for a file at the branch's current HEAD.
-	// Returns [ErrBranchNotFound] if the branch does not exist.
-	// Returns [ErrFileNotFound] if the path does not exist on the branch.
-	ReadFile(ctx context.Context, branchID, path string) (Blob, error)
-
-	// DeleteFile removes a file from the specified branch by creating a deletion
-	// commit. Returns [ErrBranchNotFound] if the branch does not exist.
-	// Returns [ErrFileNotFound] if the path does not exist on the branch.
-	DeleteFile(ctx context.Context, req DeleteFileRequest) (Commit, error)
-
-	// ListDirectory returns the immediate children (files and sub-directories)
-	// at the given path on the branch.
-	// Returns [ErrBranchNotFound] if the branch does not exist.
-	// Returns [ErrFileNotFound] if the path does not exist on the branch.
-	ListDirectory(ctx context.Context, branchID, path string) ([]FileEntry, error)
-
-	// ── History ───────────────────────────────────────────────────────────────
-
-	// Log returns the commit history for the branch, optionally filtered to a
-	// specific file path via filter.Path. Results are ordered newest to oldest.
-	// Returns [ErrBranchNotFound] if the branch does not exist.
-	Log(ctx context.Context, branchID string, filter LogFilter) ([]CommitEntry, error)
-
-	// Diff returns per-file change summaries between two refs.
-	// fromRef and toRef may be branch IDs or commit SHAs.
-	// Returns [ErrRefNotFound] if either ref cannot be resolved.
-	Diff(ctx context.Context, fromRef, toRef string) ([]FileDiff, error)
-
-	// ── Repository Import ───────────────────────────────────────────────
-
-	// ImportRepo begins an async import of a public Git repository into this
-	// agency's entity graph. It returns immediately with an ImportJob whose
-	// ID can be used to poll GetImportStatus.
-	//
-	// Returns [ErrRepoAlreadyExists] if a Repository entity with the same name
-	// already exists for this agency.
-	// Returns [ErrImportInProgress] if a job with status "pending" or "running"
-	// already exists for this agency.
-	ImportRepo(ctx context.Context, req ImportRepoRequest) (ImportJob, error)
-
-	// GetImportStatus returns the current state of an import job.
-	// Returns [ErrImportJobNotFound] if no job with the given ID exists for
-	// this agency.
-	GetImportStatus(ctx context.Context, jobID string) (ImportJob, error)
-
-	// CancelImport cancels a pending or running import job. The background
-	// goroutine's context is cancelled and the temp clone directory is removed.
-	// Returns [ErrImportJobNotFound] if the job does not exist.
-	// Returns [ErrImportJobNotCancellable] if the job has already reached a
-	// terminal state (completed, failed, or cancelled).
-	CancelImport(ctx context.Context, jobID string) error
-
-	// ── Keyword CRUD (GIT-019c) ────────────────────────────────────────────────
-
-	// CreateKeyword creates a new Keyword entity in the taxonomy.
-	// If req.ParentID is set the keyword is added as a child of that parent.
-	// Returns [ErrKeywordAlreadyExists] if a keyword with the same name exists
-	// under the same parent (or at root level when ParentID is empty).
-	// Returns [ErrKeywordNotFound] if req.ParentID does not resolve to a keyword.
-	CreateKeyword(ctx context.Context, req CreateKeywordRequest) (Keyword, error)
-
-	// GetKeyword retrieves a Keyword entity by its entitygraph ID.
-	// Returns [ErrKeywordNotFound] if no keyword with that ID exists.
-	GetKeyword(ctx context.Context, keywordID string) (Keyword, error)
-
-	// ListKeywords returns Keyword entities matching the given filter.
-	// When filter.ParentID is empty, root keywords (no parent) are returned.
-	// Set filter.ParentID to a keyword ID to list its direct children.
-	ListKeywords(ctx context.Context, filter KeywordFilter) ([]Keyword, error)
-
-	// GetKeywordTree returns the full taxonomy subtree rooted at the given
-	// keywordID, or the full forest of root keywords when keywordID is empty.
-	// Tree depth is unlimited; each node's Children field is populated.
-	GetKeywordTree(ctx context.Context, keywordID string) ([]KeywordTreeNode, error)
-
-	// UpdateKeyword updates the mutable fields of a Keyword entity.
-	// Returns [ErrKeywordNotFound] if no keyword with that ID exists.
-	UpdateKeyword(ctx context.Context, keywordID string, req UpdateKeywordRequest) (Keyword, error)
-
-	// DeleteKeyword removes a Keyword entity and all its has_child edges.
-	// Children are re-rooted to the deleted keyword's parent (or become root
-	// keywords if the deleted keyword had no parent).
-	// Returns [ErrKeywordNotFound] if no keyword with that ID exists.
-	DeleteKeyword(ctx context.Context, keywordID string) error
-
-	// ── Branch-Scoped Edge CRUD (GIT-019e) ───────────────────────────────────
-
-	// CreateEdge creates a documentation edge between two entities on the
-	// specified branch. Supported relationship names: "tagged_with",
-	// "documents", "documented_by", "depends_on", "imported_by".
-	// The inverse edge is auto-created by entitygraph.DataManager.
-	// Returns [ErrBranchNotFound] if the branch does not exist.
-	// Returns [ErrInvalidRelationship] if the relationship name is not a valid
-	// documentation edge type.
-	CreateEdge(ctx context.Context, req CreateEdgeRequest) error
-
-	// DeleteEdge removes a documentation edge between two entities.
-	// Supported relationship names are the same as CreateEdge.
-	// Returns [ErrBranchNotFound] if the branch does not exist.
-	// Returns [ErrEdgeNotFound] if no matching edge exists.
-	// Returns [ErrInvalidRelationship] if the relationship name is invalid.
-	DeleteEdge(ctx context.Context, req DeleteEdgeRequest) error
-
-	// ── Graph Queries (GIT-020) ───────────────────────────────────────────────
-	// GetNeighborhood returns all entities and edges reachable from entityID
-	// within the given depth, bounded by a 100-node hard cap. The starting
-	// entity is always included in the result.
-	//
-	// depth is clamped to the range [1, 3]. Values outside this range are
-	// silently corrected. When depth is 0 it is treated as 1.
-	//
-	// Returns [ErrBranchNotFound] if the branch does not exist.
-	// Returns [ErrEntityNotFound] if entityID does not exist in the graph.
-	GetNeighborhood(ctx context.Context, branchID, entityID string, depth int) (GraphResult, error)
-
-	// SearchByKeywords returns entities tagged (via "tagged_with" edges) with
-	// the specified keywords, optionally cascading down the keyword hierarchy.
-	//
-	// When req.Cascade is true, each keyword in req.Keywords is expanded to
-	// include all of its descendants before matching. When req.MatchMode is
-	// [KeywordMatchModeAND], a result entity must be tagged with every
-	// (expanded) keyword; when [KeywordMatchModeOR], a match on any keyword
-	// suffices. Defaults to [KeywordMatchModeOR] when MatchMode is empty.
-	//
-	// Returns [ErrBranchNotFound] if req.BranchID does not exist.
-	// Returns an empty [GraphResult] when no entities match (never nil).
-	SearchByKeywords(ctx context.Context, req SearchByKeywordsRequest) (GraphResult, error)
-
-	// QueryGraph returns up to req.Limit Blob nodes filtered across five
-	// dimensions (signals, keyword_ids, file_types, folders, relationships) and
-	// sorted by descending signal layer. An empty request body returns the top
-	// 50 highest-signal Blob nodes with their inter-node edges.
-	//
-	// Returns [ErrBranchNotFound] if req.BranchID does not exist.
-	QueryGraph(ctx context.Context, req QueryGraphRequest) (GraphResult, error)
-
-	// ── Lazy Import v2 (GIT-023b) ─────────────────────────────────────────────
-
-	// FetchBranch triggers an async on-demand fetch of the full commit history
-	// and file tree for a stub branch. The branch must currently have
-	// status == "stub" (created by the lazy import v2 runImport path).
-	//
-	// The method returns immediately with a [FetchBranchJob] whose ID can be
-	// passed to [GitManager.GetFetchBranchStatus] to poll for progress. A
-	// background goroutine deepens the bare shallow clone, walks the tip tree,
-	// and materialises Commit, Tree, and Blob entities, transitioning the
-	// branch status through "fetching" → "fetched" | "fetch_failed".
-	//
-	// Returns [ErrBranchNotFound] if no branch with req.BranchID exists.
-	// Returns [ErrBranchAlreadyFetched] if the branch status is "fetching" or
-	// "fetched" — callers should poll the existing job instead.
-	FetchBranch(ctx context.Context, req FetchBranchRequest) (FetchBranchJob, error)
-
-	// GetFetchBranchStatus returns the current state of a fetch job.
-	// Returns [ErrImportJobNotFound] if no job with the given ID exists for
-	// this agency.
-	GetFetchBranchStatus(ctx context.Context, jobID string) (FetchBranchJob, error)
-
-	// IndexPushedBranch indexes the commits that were just pushed and
-	// materialises Commit, Tree, and Blob entities in the entity graph, then
-	// advances the branch HEAD pointer.
-	// Called by the Git Smart HTTP receive-pack handler after a successful push.
-	// repoName is the human-readable repository name (not an entity ID).
-	// branchRef is the full ref name, e.g. "refs/heads/main".
-	// oldSHA is the previous branch tip (all-zeros string for a new branch).
-	// newSHA is the new branch tip written by the push.
-	IndexPushedBranch(ctx context.Context, repoName, branchRef, oldSHA, newSHA string) error
+	// Unsubscribe sets the Subscription status to "cancelled".
+	// Returns [ErrSubscriptionNotFound] if no Subscription with that ID exists.
+	// Returns [ErrSubscriptionNotCancellable] if the subscription is already cancelled.
+	// Publishes [TopicSubscriptionCancelled] after a successful write.
+	Unsubscribe(ctx context.Context, subscriptionID string) error
 }
 
-// RefLocker serialises default-branch mutations per agency.
-// The default implementation is an in-process [sync.Mutex] keyed by agencyID.
-// Inject a distributed lock implementation for multi-instance deployments.
-type RefLocker interface {
-	// WithMergeLock acquires an exclusive per-agency lock, calls fn, then
-	// releases the lock. If ctx is cancelled before the lock is acquired,
-	// ctx.Err() is returned immediately without calling fn.
-	WithMergeLock(ctx context.Context, agencyID string, fn func() error) error
-}
-
-// mutexLocker is the default in-process [RefLocker] implementation.
-// It is keyed by agencyID so concurrent merges for different agencies
-// never block each other.
-type mutexLocker struct {
-	mu sync.Map // agencyID → *sync.Mutex
-}
-
-// WithMergeLock implements [RefLocker] using a per-agency [sync.Mutex].
-// Context cancellation is checked before fn is called; if the context is
-// already done the lock is never acquired.
-func (l *mutexLocker) WithMergeLock(ctx context.Context, agencyID string, fn func() error) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	raw, _ := l.mu.LoadOrStore(agencyID, &sync.Mutex{})
-	mu := raw.(*sync.Mutex)
-	done := make(chan error, 1)
-	go func() {
-		mu.Lock()
-		defer mu.Unlock()
-		done <- fn()
-	}()
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err := <-done:
-		return err
-	}
-}
-
-// gitManager is the concrete implementation of [GitManager].
-// It wraps [entitygraph.DataManager] to expose Git-specific convenience
+// pubSubManager is the concrete implementation of [PubSubManager].
+// It wraps [entitygraph.DataManager] to expose pub/sub-specific convenience
 // methods over the entity graph.
-type gitManager struct {
+type pubSubManager struct {
 	dm        entitygraph.DataManager // graph CRUD — injected by cmd/main.go
-	sm        GitSchemaManager        // schema versioning — injected by cmd/main.go
+	sm        PubSubSchemaManager     // schema versioning — injected by cmd/main.go
 	publisher eventbus.Publisher      // optional; nil = skip event publishing
 	agencyID  string                  // the single agency ID for this database
-	backend   Backend                 // storer backend — used by IndexPushedBranch
-	locker    RefLocker               // serialises per-agency default-branch mutations
 }
 
-// NewGitManager constructs a [GitManager] backed by the given
-// [entitygraph.DataManager] and [GitSchemaManager].
+// NewPubSubManager constructs a [PubSubManager] backed by the given
+// [entitygraph.DataManager] and [PubSubSchemaManager].
 // agencyID is the single agency scoped to this database instance.
 // pub may be nil — cross-service events are skipped when no publisher is set.
-// locker may be nil — a default in-process [mutexLocker] is used.
-func NewGitManager(
+func NewPubSubManager(
 	dm entitygraph.DataManager,
-	sm GitSchemaManager,
+	sm PubSubSchemaManager,
 	pub eventbus.Publisher,
 	agencyID string,
-	backend Backend,
-	locker RefLocker,
-) GitManager {
-	if locker == nil {
-		locker = &mutexLocker{}
-	}
-	return &gitManager{
+) PubSubManager {
+	return &pubSubManager{
 		dm:        dm,
 		sm:        sm,
 		publisher: pub,
 		agencyID:  agencyID,
-		backend:   backend,
-		locker:    locker,
 	}
 }
 
 // publish emits a typed [eventbus.Event] via the optional Publisher.
 // A nil publisher is silently skipped; errors are swallowed — events are
 // best-effort and must not fail the originating operation.
-func (m *gitManager) publish(ctx context.Context, topic string, payload any) {
+func (m *pubSubManager) publish(ctx context.Context, topic string, payload any) {
 	eventbus.SafePublish(ctx, m.publisher, eventbus.Event{
 		Topic:    topic,
 		AgencyID: m.agencyID,

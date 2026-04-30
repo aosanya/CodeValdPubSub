@@ -1,87 +1,67 @@
 package codevaldpubsub
 
-// Event topic constants — the closed set CodeValdGit publishes.
+// Event topic constants — the closed set CodeValdPubSub publishes about its
+// own lifecycle operations.
 const (
-	// TopicRepoCreated fires after a Repository entity is created by InitRepo.
-	// Payload: [RepoCreatedPayload].
-	TopicRepoCreated = "git.repo.created"
+	// TopicTopicRegistered fires after a Topic entity is created by RegisterTopic.
+	// Payload: [TopicRegisteredPayload].
+	TopicTopicRegistered = "pubsub.topic.registered"
 
-	// TopicRepoImported fires when an async ImportRepo job completes successfully.
-	// Payload: [RepoImportedPayload].
-	TopicRepoImported = "git.repo.imported"
+	// TopicEventRecorded fires after an Event entity is created by RecordEvent.
+	// Payload: [EventRecordedPayload].
+	TopicEventRecorded = "pubsub.event.recorded"
 
-	// TopicRepoImportFailed fires when an async ImportRepo job fails.
-	// Payload: [RepoImportFailedPayload].
-	TopicRepoImportFailed = "git.repo.import.failed"
+	// TopicSubscriptionCreated fires after a Subscription entity is created by Subscribe.
+	// Payload: [SubscriptionCreatedPayload].
+	TopicSubscriptionCreated = "pubsub.subscription.created"
 
-	// TopicRepoImportCancelled fires when an async ImportRepo job is cancelled.
-	// Payload: [RepoImportCancelledPayload].
-	TopicRepoImportCancelled = "git.repo.import.cancelled"
+	// TopicSubscriptionUpdated fires after a Subscription entity is updated by
+	// UpdateSubscription. Payload: [SubscriptionUpdatedPayload].
+	TopicSubscriptionUpdated = "pubsub.subscription.updated"
 
-	// TopicBranchFetched fires when an async FetchBranch job completes successfully.
-	// Payload: [BranchFetchedPayload].
-	TopicBranchFetched = "git.branch.fetched"
-
-	// TopicBranchMerged fires after a branch is successfully merged into the
-	// repository default branch. Payload: [BranchMergedPayload].
-	TopicBranchMerged = "git.branch.merged"
-
-	// TopicMergeConflict fires when MergeBranch encounters a conflict that
-	// cannot be auto-resolved. Payload: [MergeConflictPayload].
-	TopicMergeConflict = "git.conflict.detected"
+	// TopicSubscriptionCancelled fires after a Subscription is cancelled by Unsubscribe.
+	// Payload: [SubscriptionCancelledPayload].
+	TopicSubscriptionCancelled = "pubsub.subscription.cancelled"
 )
 
 // AllTopics is the closed list of topics this service publishes.
 func AllTopics() []string {
 	return []string{
-		TopicRepoCreated,
-		TopicRepoImported,
-		TopicRepoImportFailed,
-		TopicRepoImportCancelled,
-		TopicBranchFetched,
-		TopicBranchMerged,
-		TopicMergeConflict,
+		TopicTopicRegistered,
+		TopicEventRecorded,
+		TopicSubscriptionCreated,
+		TopicSubscriptionUpdated,
+		TopicSubscriptionCancelled,
 	}
 }
 
-// RepoCreatedPayload is the [eventbus.Event.Payload] for [TopicRepoCreated].
-type RepoCreatedPayload struct {
-	RepoID string
-	Name   string
+// TopicRegisteredPayload is the [eventbus.Event.Payload] for [TopicTopicRegistered].
+type TopicRegisteredPayload struct {
+	TopicID string
+	Pattern string
 }
 
-// RepoImportedPayload is the [eventbus.Event.Payload] for [TopicRepoImported].
-type RepoImportedPayload struct {
-	JobID  string
-	RepoID string
+// EventRecordedPayload is the [eventbus.Event.Payload] for [TopicEventRecorded].
+type EventRecordedPayload struct {
+	EventID string
+	Topic   string
 }
 
-// RepoImportFailedPayload is the [eventbus.Event.Payload] for [TopicRepoImportFailed].
-type RepoImportFailedPayload struct {
-	JobID        string
-	ErrorMessage string
+// SubscriptionCreatedPayload is the [eventbus.Event.Payload] for [TopicSubscriptionCreated].
+type SubscriptionCreatedPayload struct {
+	SubscriptionID    string
+	SubscriberID      string
+	TopicPattern      string
 }
 
-// RepoImportCancelledPayload is the [eventbus.Event.Payload] for [TopicRepoImportCancelled].
-type RepoImportCancelledPayload struct {
-	JobID string
+// SubscriptionUpdatedPayload is the [eventbus.Event.Payload] for [TopicSubscriptionUpdated].
+type SubscriptionUpdatedPayload struct {
+	SubscriptionID string
+	Status         string
 }
 
-// BranchFetchedPayload is the [eventbus.Event.Payload] for [TopicBranchFetched].
-type BranchFetchedPayload struct {
-	JobID    string
-	BranchID string
-	RepoID   string
-}
-
-// BranchMergedPayload is the [eventbus.Event.Payload] for [TopicBranchMerged].
-type BranchMergedPayload struct {
-	BranchID string
-	RepoID   string
-}
-
-// MergeConflictPayload is the [eventbus.Event.Payload] for [TopicMergeConflict].
-type MergeConflictPayload struct {
-	BranchID         string
-	ConflictingFiles []string
+// SubscriptionCancelledPayload is the [eventbus.Event.Payload] for [TopicSubscriptionCancelled].
+type SubscriptionCancelledPayload struct {
+	SubscriptionID string
+	SubscriberID   string
 }

@@ -1,8 +1,5 @@
 // git_impl_converters.go — entity→domain converters and shared graph lookup
-// utilities for [gitManager].
-//
-// Property helpers (StringProp, BoolProp, Int64Prop) live in
-// [github.com/aosanya/CodeValdSharedLib/entitygraph] and are used directly.
+// utilities for [pubSubManager].
 package codevaldpubsub
 
 import (
@@ -13,55 +10,57 @@ import (
 
 // ── Entity → domain converters ────────────────────────────────────────────────
 
-// entityToRepository maps an entitygraph.Entity of type "Repository" to [Repository].
-func entityToRepository(e entitygraph.Entity, agencyID string) Repository {
+// entityToTopic maps an entitygraph.Entity of type "Topic" to [Topic].
+func entityToTopic(e entitygraph.Entity) Topic {
 	p := e.Properties
-	return Repository{
+	return Topic{
 		ID:            e.ID,
-		AgencyID:      agencyID,
-		Name:          entitygraph.StringProp(p, "name"),
+		Pattern:       entitygraph.StringProp(p, "pattern"),
+		Domain:        entitygraph.StringProp(p, "domain"),
+		Action:        entitygraph.StringProp(p, "action"),
+		SourceService: entitygraph.StringProp(p, "source_service"),
 		Description:   entitygraph.StringProp(p, "description"),
-		DefaultBranch: entitygraph.StringProp(p, "default_branch"),
 		CreatedAt:     entitygraph.StringProp(p, "created_at"),
 		UpdatedAt:     entitygraph.StringProp(p, "updated_at"),
-		SourceURL:     entitygraph.StringProp(p, "source_url"),
 	}
 }
 
-// entityToBranch maps an entitygraph.Entity of type "Branch" to [Branch].
-func entityToBranch(e entitygraph.Entity, repositoryID string) Branch {
+// entityToEvent maps an entitygraph.Entity of type "Event" to [Event].
+func entityToEvent(e entitygraph.Entity) Event {
 	p := e.Properties
-	return Branch{
-		ID:           e.ID,
-		RepositoryID: repositoryID,
-		Name:         entitygraph.StringProp(p, "name"),
-		IsDefault:    entitygraph.BoolProp(p, "is_default"),
-		HeadCommitID: entitygraph.StringProp(p, "head_commit_id"),
-		CreatedAt:    entitygraph.StringProp(p, "created_at"),
-		UpdatedAt:    entitygraph.StringProp(p, "updated_at"),
+	return Event{
+		ID:            e.ID,
+		Topic:         entitygraph.StringProp(p, "topic"),
+		Domain:        entitygraph.StringProp(p, "domain"),
+		AgencyID:      entitygraph.StringProp(p, "agency_id"),
+		Action:        entitygraph.StringProp(p, "action"),
+		Payload:       entitygraph.StringProp(p, "payload"),
+		SourceService: entitygraph.StringProp(p, "source_service"),
+		PublishedAt:   entitygraph.StringProp(p, "published_at"),
+		CreatedAt:     entitygraph.StringProp(p, "created_at"),
 	}
 }
 
-// entityToTag maps an entitygraph.Entity of type "Tag" to [Tag].
-func entityToTag(e entitygraph.Entity, repositoryID string) Tag {
+// entityToSubscription maps an entitygraph.Entity of type "Subscription" to [Subscription].
+func entityToSubscription(e entitygraph.Entity, topicID string) Subscription {
 	p := e.Properties
-	return Tag{
-		ID:           e.ID,
-		RepositoryID: repositoryID,
-		Name:         entitygraph.StringProp(p, "name"),
-		SHA:          entitygraph.StringProp(p, "sha"),
-		Message:      entitygraph.StringProp(p, "message"),
-		TaggerName:   entitygraph.StringProp(p, "tagger_name"),
-		TaggerAt:     entitygraph.StringProp(p, "tagger_at"),
-		CreatedAt:    entitygraph.StringProp(p, "created_at"),
+	return Subscription{
+		ID:                e.ID,
+		TopicID:           topicID,
+		SubscriberID:      entitygraph.StringProp(p, "subscriber_id"),
+		SubscriberService: entitygraph.StringProp(p, "subscriber_service"),
+		TopicPattern:      entitygraph.StringProp(p, "topic_pattern"),
+		Status:            entitygraph.StringProp(p, "status"),
+		CreatedAt:         entitygraph.StringProp(p, "created_at"),
+		UpdatedAt:         entitygraph.StringProp(p, "updated_at"),
 	}
 }
 
 // ── Shared graph helpers ──────────────────────────────────────────────────────
 
 // resolveParentID returns the first ToID for an outbound relationship with the
-// given name from the entity identified by entityID. Returns "" on any error.
-func (m *gitManager) resolveParentID(ctx context.Context, entityID, relName string) string {
+// given name from entityID. Returns "" on any error or when no edge exists.
+func (m *pubSubManager) resolveParentID(ctx context.Context, entityID, relName string) string {
 	rels, err := m.dm.ListRelationships(ctx, entitygraph.RelationshipFilter{
 		AgencyID: m.agencyID,
 		Name:     relName,

@@ -1,0 +1,190 @@
+syntax = "proto3";
+
+package codevaldpubsub.v1;
+
+option go_package = "github.com/aosanya/CodeValdPubSub/gen/go/codevaldpubsub/v1;codevaldpubsubv1";
+
+// PubSubService is the single gRPC service exposed by CodeValdPubSub.
+// All operations are scoped to the agency that owns this database instance.
+// Topics follow the pattern: <domain>.<agencyId>.<projectName>.<entityName>.<action>
+service PubSubService {
+
+  // ── Topics ────────────────────────────────────────────────────────────────
+
+  // CreateTopic registers a new topic pattern.
+  // Error: ALREADY_EXISTS if a topic with the same pattern already exists.
+  rpc CreateTopic (CreateTopicRequest) returns (Topic);
+
+  // GetTopic retrieves a Topic by its ID.
+  // Error: NOT_FOUND if no topic with that ID exists.
+  rpc GetTopic (GetTopicRequest) returns (Topic);
+
+  // ListTopics returns all Topic entities for this agency.
+  rpc ListTopics (ListTopicsRequest) returns (ListTopicsResponse);
+
+  // DeleteTopic removes a Topic entity.
+  // Error: NOT_FOUND if no topic with that ID exists.
+  rpc DeleteTopic (DeleteTopicRequest) returns (DeleteTopicResponse);
+
+  // ── Events ────────────────────────────────────────────────────────────────
+
+  // PublishEvent records an immutable Event and links it to the matching Topic.
+  // If the topic does not yet exist it is auto-created.
+  rpc PublishEvent (PublishEventRequest) returns (Event);
+
+  // GetEvent retrieves an Event by its ID.
+  // Error: NOT_FOUND if no event with that ID exists.
+  rpc GetEvent (GetEventRequest) returns (Event);
+
+  // ListEvents returns all Event entities for the given topic.
+  // Error: NOT_FOUND if the topic does not exist.
+  rpc ListEvents (ListEventsRequest) returns (ListEventsResponse);
+
+  // ── Subscriptions ─────────────────────────────────────────────────────────
+
+  // Subscribe registers a subscriber's interest in a topic pattern.
+  // Error: ALREADY_EXISTS if the same subscriber_id is already subscribed to the pattern.
+  rpc Subscribe (SubscribeRequest) returns (Subscription);
+
+  // GetSubscription retrieves a Subscription by its ID.
+  // Error: NOT_FOUND if no subscription with that ID exists.
+  rpc GetSubscription (GetSubscriptionRequest) returns (Subscription);
+
+  // ListSubscriptions returns all Subscription entities for this agency.
+  rpc ListSubscriptions (ListSubscriptionsRequest) returns (ListSubscriptionsResponse);
+
+  // Unsubscribe removes a Subscription entity.
+  // Error: NOT_FOUND if no subscription with that ID exists.
+  rpc Unsubscribe (UnsubscribeRequest) returns (UnsubscribeResponse);
+
+  // UpdateSubscription mutates the status of an existing Subscription.
+  // Valid status values: "active", "paused", "cancelled".
+  // Error: NOT_FOUND if no subscription with that ID exists.
+  rpc UpdateSubscription (UpdateSubscriptionRequest) returns (Subscription);
+}
+
+// ── Entities ──────────────────────────────────────────────────────────────────
+
+// Topic is a registered topic pattern.
+// pattern follows <domain>.<agencyId>.<projectName>.<entityName>.<action>.
+// Use "*" for wildcard segments.
+message Topic {
+  string id             = 1;
+  string pattern        = 2;
+  string domain         = 3;
+  string action         = 4;
+  string source_service = 5;
+  string description    = 6;
+  string created_at     = 7;
+  string updated_at     = 8;
+}
+
+// Event is an immutable record of a single published event.
+message Event {
+  string id             = 1;
+  string topic          = 2;
+  string domain         = 3;
+  string agency_id      = 4;
+  string action         = 5;
+  string payload        = 6;
+  string source_service = 7;
+  string published_at   = 8;
+  string created_at     = 9;
+}
+
+// Subscription represents a service's registered interest in a topic pattern.
+message Subscription {
+  string id                 = 1;
+  string subscriber_id      = 2;
+  string subscriber_service = 3;
+  string topic_pattern      = 4;
+  string status             = 5;
+  string created_at         = 6;
+  string updated_at         = 7;
+}
+
+// ── Request / Response Messages ───────────────────────────────────────────────
+
+// Topics
+
+message CreateTopicRequest {
+  string pattern        = 1;
+  string domain         = 2;
+  string action         = 3;
+  string source_service = 4;
+  string description    = 5;
+}
+
+message GetTopicRequest {
+  string topic_id = 1;
+}
+
+message ListTopicsRequest {
+  string domain = 1;
+}
+
+message ListTopicsResponse {
+  repeated Topic topics = 1;
+}
+
+message DeleteTopicRequest {
+  string topic_id = 1;
+}
+
+message DeleteTopicResponse {}
+
+// Events
+
+message PublishEventRequest {
+  string topic          = 1;
+  string domain         = 2;
+  string agency_id      = 3;
+  string action         = 4;
+  string payload        = 5;
+  string source_service = 6;
+}
+
+message GetEventRequest {
+  string event_id = 1;
+}
+
+message ListEventsRequest {
+  string topic_id = 1;
+  int32  limit    = 2;
+}
+
+message ListEventsResponse {
+  repeated Event events = 1;
+}
+
+// Subscriptions
+
+message SubscribeRequest {
+  string subscriber_id      = 1;
+  string subscriber_service = 2;
+  string topic_pattern      = 3;
+}
+
+message GetSubscriptionRequest {
+  string subscription_id = 1;
+}
+
+message ListSubscriptionsRequest {
+  string subscriber_id  = 1;
+  string topic_pattern  = 2;
+}
+
+message ListSubscriptionsResponse {
+  repeated Subscription subscriptions = 1;
+}
+
+message UnsubscribeRequest {
+  string subscription_id = 1;
+}
+
+message UnsubscribeResponse {}
+
+message UpdateSubscriptionRequest {
+  string subscription_id = 1;
+  string status          = 2;
+}

@@ -1,19 +1,21 @@
-// Package arangodb implements the ArangoDB backend for CodeValdGit.
+// Package arangodb implements the ArangoDB backend for CodeValdPubSub.
 // All implementation logic lives in
 // [github.com/aosanya/CodeValdSharedLib/entitygraph/arangodb]; this package
 // is a thin service-scoped adapter that fixes the collection and graph names
-// to their CodeValdGit-specific values.
+// to their CodeValdPubSub-specific values.
 //
 // Entity collections:
-//   - git_entities  — mutable refs: Agency, Repository, Branch, Tag
-//   - git_objects   — immutable content-addressed objects: Commit, Tree, Blob
+//   - pubsub_entities  — mutable entities: Agency, Topic, Subscription
 //
 // Infrastructure collections:
-//   - git_relationships    — ArangoDB edge collection for all directed graph edges
-//   - git_schemas_draft    — one mutable draft schema document per agency
-//   - git_schemas_published — immutable append-only published schema snapshots
+//   - pubsub_relationships    — ArangoDB edge collection for all directed graph edges
+//   - pubsub_schemas_draft    — one mutable draft schema document per agency
+//   - pubsub_schemas_published — immutable append-only published schema snapshots
 //
-// Named graph: git_graph
+// Named graph: pubsub_graph
+//
+// Message storage is routed to pubsub_messages via TypeDefinition.StorageCollection
+// in the schema seed.
 //
 // Use [New] to obtain a (DataManager, SchemaManager) pair from an open database.
 // Use [NewBackend] to connect and construct in a single call.
@@ -26,7 +28,6 @@ import (
 
 	driver "github.com/arangodb/go-driver"
 
-	codevaldpubsub "github.com/aosanya/CodeValdGit"
 	"github.com/aosanya/CodeValdSharedLib/arangoutil"
 	"github.com/aosanya/CodeValdSharedLib/entitygraph"
 	sharedadb "github.com/aosanya/CodeValdSharedLib/entitygraph/arangodb"
@@ -37,16 +38,13 @@ import (
 // Callers holding *Backend references continue to compile unchanged.
 type Backend = sharedadb.Backend
 
-// Config is the connection parameters for the CodeValdGit ArangoDB backend.
+// Config is the connection parameters for the CodeValdPubSub ArangoDB backend.
 // It is an alias of [sharedadb.ConnConfig]; see that type for field docs.
 // NewBackend requires Database to be set (e.g. "codevaldpubsub").
 type Config = sharedadb.ConnConfig
 
-// toSharedConfig expands a CodeValdGit Config into a full SharedLib Config,
-// filling in the fixed CodeValdGit-specific collection and graph names.
-// Does not check whether Database is set — that check belongs in NewBackend,
-// which dials the server. New and NewBackendFromDB receive an already-open
-// database and do not use the Database field.
+// toSharedConfig expands a CodeValdPubSub Config into a full SharedLib Config,
+// filling in the fixed CodeValdPubSub-specific collection and graph names.
 func toSharedConfig(cfg Config) sharedadb.Config {
 	return sharedadb.Config{
 		Endpoint:            cfg.Endpoint,
@@ -54,11 +52,11 @@ func toSharedConfig(cfg Config) sharedadb.Config {
 		Password:            cfg.Password,
 		Database:            cfg.Database,
 		Schema:              cfg.Schema,
-		EntityCollection:    "git_entities",
-		RelCollection:       "git_relationships",
-		SchemasDraftCol:     "git_schemas_draft",
-		SchemasPublishedCol: "git_schemas_published",
-		GraphName:           "git_graph",
+		EntityCollection:    "pubsub_entities",
+		RelCollection:       "pubsub_relationships",
+		SchemasDraftCol:     "pubsub_schemas_draft",
+		SchemasPublishedCol: "pubsub_schemas_published",
+		GraphName:           "pubsub_graph",
 	}
 }
 
@@ -94,30 +92,21 @@ func NewBackendFromDB(db driver.Database, schema types.Schema) (*Backend, error)
 	return sharedadb.NewBackendFromDB(db, scfg)
 }
 
-// NewArangoStorerBackend constructs a codevaldpubsub.Backend from an existing
+// NewArangoBackend constructs a [PubSubBackend] from an existing
 // entitygraph.DataManager. Use this in cmd/main.go to share the same
-// DataManager between the gRPC GitManager and the git Smart HTTP handler
-// without maintaining a separate driver.Database reference.
-func NewArangoStorerBackend(dm entitygraph.DataManager) codevaldpubsub.Backend {
+// DataManager between the gRPC handler and any other service components.
+func NewArangoBackend(dm entitygraph.DataManager) PubSubBackend {
 	return &arangoBackend{dm: dm}
 }
 
-// gitObjectCollections lists the ArangoDB collection names that hold
-// immutable, content-addressed git objects.  A persistent index on
-// [agency_id, properties.sha] is required on each so that
-// arangoStorer.EncodedObject can look up an object by SHA in O(1) time
-// instead of scanning the entire collection.
-var gitObjectCollections = []string{"git_blobs", "git_trees", "git_commits"}
-
-// EnsureGitObjectIndexes adds a persistent ArangoDB index on
-// [agency_id, properties.sha] to each git object collection
-// (git_blobs, git_trees, git_commits).  The call is idempotent — ArangoDB
-// returns the existing index when one with the same fields already exists.
+// EnsureMessageIndexes adds a persistent ArangoDB index on
+// [agency_id, topic_name, published_at] to the pubsub_messages collection.
+// The call is idempotent — ArangoDB returns the existing index when one with
+// the same fields already exists.
 //
 // Call this once at startup after [NewBackend] succeeds.
-// cfg.Database is required; other fields default to their zero-value
-// equivalents (same as NewBackend).
-func EnsureGitObjectIndexes(ctx context.Context, cfg Config) error {
+// cfg.Database is required; other fields default to their zero-value equivalents.
+func EnsureMessageIndexes(ctx context.Context, cfg Config) error {
 	if cfg.Endpoint == "" {
 		cfg.Endpoint = "http://localhost:8529"
 	}
@@ -131,35 +120,30 @@ func EnsureGitObjectIndexes(ctx context.Context, cfg Config) error {
 		Database: cfg.Database,
 	})
 	if err != nil {
-		return fmt.Errorf("EnsureGitObjectIndexes: connect: %w", err)
+		return fmt.Errorf("EnsureMessageIndexes: connect: %w", err)
 	}
-	for _, name := range gitObjectCollections {
-		exists, err := db.CollectionExists(ctx, name)
-		if err != nil {
-			return fmt.Errorf("EnsureGitObjectIndexes %s: check collection: %w", name, err)
-		}
-		if !exists {
-			// Collection not yet created (first-run before schema seed).
-			// Skip and let the index be added on the next startup.
-			continue
-		}
-		col, err := db.Collection(ctx, name)
-		if err != nil {
-			return fmt.Errorf("EnsureGitObjectIndexes %s: open collection: %w", name, err)
-		}
-		// Sparse index: documents without properties.sha (e.g. GitInternalState)
-		// are excluded, keeping the index small.
-		_, _, err = col.EnsurePersistentIndex(ctx,
-			[]string{"agency_id", "properties.sha"},
-			&driver.EnsurePersistentIndexOptions{
-				Name:         "idx_agency_sha",
-				Sparse:       true,
-				InBackground: true,
-			},
-		)
-		if err != nil {
-			return fmt.Errorf("EnsureGitObjectIndexes %s: ensure index: %w", name, err)
-		}
+	exists, err := db.CollectionExists(ctx, "pubsub_messages")
+	if err != nil {
+		return fmt.Errorf("EnsureMessageIndexes: check collection: %w", err)
+	}
+	if !exists {
+		// Collection not yet created (first-run before schema seed).
+		// Skip and let the index be added on the next startup.
+		return nil
+	}
+	col, err := db.Collection(ctx, "pubsub_messages")
+	if err != nil {
+		return fmt.Errorf("EnsureMessageIndexes: open collection: %w", err)
+	}
+	_, _, err = col.EnsurePersistentIndex(ctx,
+		[]string{"agency_id", "topic_name", "published_at"},
+		&driver.EnsurePersistentIndexOptions{
+			Name:         "idx_agency_topic_published",
+			InBackground: true,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("EnsureMessageIndexes: ensure index: %w", err)
 	}
 	return nil
 }
