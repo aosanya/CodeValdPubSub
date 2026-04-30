@@ -6,13 +6,13 @@
 //
 // Entity types:
 //   - Topic        — registered named channel (mutable, stored in pubsub_topics)
-//   - Message      — immutable published event (append-only, stored in pubsub_messages)
-//   - Subscription — a consumer's cursor on a topic (mutable, stored in pubsub_subscriptions)
+//   - Event        — immutable recorded event (append-only, stored in pubsub_events)
+//   - Subscription — a service's registration for a topic pattern (mutable, stored in pubsub_subscriptions)
 //
 // Graph topology:
 //
-//	Topic ──has_message──────► Message
-//	Topic ──has_subscription──► Subscription
+//	Event ──for_topic──────────► Topic
+//	Subscription ──subscribes_to──► Topic
 package codevaldpubsub
 
 import "github.com/aosanya/CodeValdSharedLib/types"
@@ -30,44 +30,33 @@ func DefaultPubSubSchema() types.Schema {
 				PathSegment:       "topics",
 				EntityIDParam:     "topicId",
 				StorageCollection: "pubsub_topics",
-				UniqueKey:         []string{"name"},
+				UniqueKey:         []string{"pattern"},
 				Properties: []types.PropertyDefinition{
-					{Name: "name", Type: types.PropertyTypeString, Required: true},
+					{Name: "pattern", Type: types.PropertyTypeString, Required: true},
+					{Name: "domain", Type: types.PropertyTypeString},
+					{Name: "action", Type: types.PropertyTypeString},
+					{Name: "source_service", Type: types.PropertyTypeString},
 					{Name: "description", Type: types.PropertyTypeString},
 					{Name: "created_at", Type: types.PropertyTypeString},
-				},
-				Relationships: []types.RelationshipDefinition{
-					{
-						Name:        "has_message",
-						Label:       "Messages",
-						PathSegment: "messages",
-						ToType:      "Message",
-						ToMany:      true,
-						Inverse:     "for_topic",
-					},
-					{
-						Name:        "has_subscription",
-						Label:       "Subscriptions",
-						PathSegment: "subscriptions",
-						ToType:      "Subscription",
-						ToMany:      true,
-						Inverse:     "subscribes_to",
-					},
+					{Name: "updated_at", Type: types.PropertyTypeString},
 				},
 			},
 			{
-				Name:              "Message",
-				DisplayName:       "Message",
-				PathSegment:       "messages",
-				EntityIDParam:     "messageId",
-				StorageCollection: "pubsub_messages",
+				Name:              "Event",
+				DisplayName:       "Event",
+				PathSegment:       "events",
+				EntityIDParam:     "eventId",
+				StorageCollection: "pubsub_events",
 				Immutable:         true,
 				Properties: []types.PropertyDefinition{
-					{Name: "message_id", Type: types.PropertyTypeString, Required: true},
-					{Name: "topic_name", Type: types.PropertyTypeString, Required: true},
+					{Name: "topic", Type: types.PropertyTypeString, Required: true},
+					{Name: "domain", Type: types.PropertyTypeString},
+					{Name: "agency_id", Type: types.PropertyTypeString},
+					{Name: "action", Type: types.PropertyTypeString},
 					{Name: "payload", Type: types.PropertyTypeString},
-					{Name: "attributes", Type: types.PropertyTypeString},
+					{Name: "source_service", Type: types.PropertyTypeString},
 					{Name: "published_at", Type: types.PropertyTypeString, Required: true},
+					{Name: "created_at", Type: types.PropertyTypeString},
 				},
 				Relationships: []types.RelationshipDefinition{
 					{
@@ -76,7 +65,7 @@ func DefaultPubSubSchema() types.Schema {
 						PathSegment: "topic",
 						ToType:      "Topic",
 						ToMany:      false,
-						Inverse:     "has_message",
+						Inverse:     "has_event",
 					},
 				},
 			},
@@ -86,12 +75,13 @@ func DefaultPubSubSchema() types.Schema {
 				PathSegment:       "subscriptions",
 				EntityIDParam:     "subscriptionId",
 				StorageCollection: "pubsub_subscriptions",
-				UniqueKey:         []string{"name"},
 				Properties: []types.PropertyDefinition{
-					{Name: "name", Type: types.PropertyTypeString, Required: true},
-					{Name: "topic_name", Type: types.PropertyTypeString, Required: true},
-					{Name: "cursor", Type: types.PropertyTypeString},
+					{Name: "subscriber_id", Type: types.PropertyTypeString, Required: true},
+					{Name: "subscriber_service", Type: types.PropertyTypeString},
+					{Name: "topic_pattern", Type: types.PropertyTypeString, Required: true},
+					{Name: "status", Type: types.PropertyTypeString},
 					{Name: "created_at", Type: types.PropertyTypeString},
+					{Name: "updated_at", Type: types.PropertyTypeString},
 				},
 				Relationships: []types.RelationshipDefinition{
 					{

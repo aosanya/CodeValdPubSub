@@ -1,93 +1,132 @@
-// Package server implements the GitService gRPC handler.
-// It wraps a [codevaldpubsub.GitManager] and translates between proto messages
-// and domain types. No business logic lives here — all calls delegate to
-// the injected GitManager.
-//
-// Files in this package:
-//   - server.go        — Server struct, constructor, and shared resolve helpers
-//   - server_repo.go   — Repository lifecycle handlers
-//   - server_branch.go — Branch management handlers
-//   - server_tag.go    — Tag management handlers
-//   - server_files.go  — File operation handlers
-//   - server_history.go — Commit log and diff handlers
-//   - server_import.go — Async repository import handlers
-//   - server_docs.go   — Documentation edge and graph handlers
-//   - mappers.go       — Domain ↔ proto conversion helpers
-//   - errors.go        — gRPC error mapping
+// Package server implements the PubSubService gRPC handler.
+// It wraps a [codevaldpubsub.Manager] and translates between proto messages
+// and domain types. No business logic lives here.
 package server
 
 import (
 	"context"
-	"fmt"
-	"log"
+	"errors"
+	"time"
 
-	codevaldpubsub "github.com/aosanya/CodeValdGit"
-	pb "github.com/aosanya/CodeValdGit/gen/go/codevaldpubsub/v1"
+	codevaldpubsub "github.com/aosanya/CodeValdPubSub"
+	pb "github.com/aosanya/CodeValdPubSub/gen/go/codevaldpubsub/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// Server implements pb.GitServiceServer by wrapping a codevaldpubsub.GitManager.
-// Construct via New; register with grpc.Server using
-// pb.RegisterGitServiceServer.
+// Server implements pb.PubSubServiceServer.
 type Server struct {
-	pb.UnimplementedGitServiceServer
-	mgr codevaldpubsub.GitManager
+	pb.UnimplementedPubSubServiceServer
+	mgr      codevaldpubsub.Manager
+	agencyID string
 }
 
-// New constructs a Server backed by the given GitManager.
-func New(mgr codevaldpubsub.GitManager) *Server {
-	return &Server{mgr: mgr}
+// New constructs a Server for the given agency.
+func New(mgr codevaldpubsub.Manager, agencyID string) *Server {
+	return &Server{mgr: mgr, agencyID: agencyID}
 }
 
-// ── Shared resolve helpers ────────────────────────────────────────────────────
-
-// resolveRepoID resolves a repository entity ID from either a direct ID or a
-// human-readable name. When repoName is non-empty it tries a name-based lookup
-// first, then falls back to treating the value as a UUID for backward
-// compatibility with callers that have not yet migrated to name-based URLs.
-func (s *Server) resolveRepoID(ctx context.Context, repoID, repoName string) (string, error) {
-	if repoName != "" {
-		repo, err := s.mgr.GetRepositoryByName(ctx, repoName)
-		if err != nil {
-			// Fallback: the value might be a UUID from a pre-migration caller.
-			repo, err = s.mgr.GetRepository(ctx, repoName)
-			if err != nil {
-				return "", err
-			}
-			return repo.ID, nil
-		}
-		return repo.ID, nil
+// Publish records a new event in the agency's event log.
+func (s *Server) Publish(ctx context.Context, req *pb.PublishRequest) (*pb.PublishResponse, error) {
+	agencyID := req.AgencyId
+	if agencyID == "" {
+		agencyID = s.agencyID
 	}
-	return repoID, nil
-}
-
-// resolveBranchID resolves a branch entity ID from either a direct ID or a
-// human-readable name within the given repository. When branchName is
-// non-empty it lists branches and returns the ID of the first match, then
-// falls back to treating the value as a UUID for backward compatibility.
-func (s *Server) resolveBranchID(ctx context.Context, repoID, branchName string) (string, error) {
-	if branchName == "" {
-		return repoID, nil
-	}
-	log.Printf("[resolveBranchID] repoID=%q branchName=%q", repoID, branchName)
-	branches, err := s.mgr.ListBranches(ctx, repoID)
+	evt, err := s.mgr.RecordEvent(ctx, agencyID, codevaldpubsub.RecordEventRequest{
+		Topic:         req.Topic,
+		Domain:        domainFromTopic(req.Topic),
+		AgencyID:      agencyID,
+		Action:        actionFromTopic(req.Topic),
+		Payload:       req.Payload,
+		SourceService: req.Source,
+		PublishedAt:   time.Now().UTC().Format(time.RFC3339),
+	})
 	if err != nil {
-		log.Printf("[resolveBranchID] ListBranches error: %v", err)
-		return "", fmt.Errorf("resolveBranchID: list branches: %w", err)
+		return nil, toGRPCError(err)
 	}
-	log.Printf("[resolveBranchID] %d branches in repo %q", len(branches), repoID)
-	for _, b := range branches {
-		if b.Name == branchName {
-			log.Printf("[resolveBranchID] resolved %q → %q", branchName, b.ID)
-			return b.ID, nil
+	return &pb.PublishResponse{Event: eventToProto(evt)}, nil
+}
+
+// GetEvent retrieves a specific event by entity ID.
+func (s *Server) GetEvent(ctx context.Context, req *pb.GetEventRequest) (*pb.Event, error) {
+	evt, err := s.mgr.GetEvent(ctx, s.agencyID, req.EventId)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+	return eventToProto(evt), nil
+}
+
+// QueryEvents lists events matching the given filters.
+func (s *Server) QueryEvents(ctx context.Context, req *pb.QueryEventsRequest) (*pb.QueryEventsResponse, error) {
+	agencyID := req.AgencyId
+	if agencyID == "" {
+		agencyID = s.agencyID
+	}
+	evts, err := s.mgr.ListEvents(ctx, agencyID, codevaldpubsub.EventFilter{
+		Domain: domainFromTopic(req.Topic),
+		Action: actionFromTopic(req.Topic),
+		Limit:  int(req.Limit),
+	})
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+	out := make([]*pb.Event, len(evts))
+	for i, e := range evts {
+		out[i] = eventToProto(e)
+	}
+	return &pb.QueryEventsResponse{Events: out}, nil
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+func eventToProto(e codevaldpubsub.Event) *pb.Event {
+	var ts *timestamppb.Timestamp
+	if t, err := time.Parse(time.RFC3339, e.PublishedAt); err == nil {
+		ts = timestamppb.New(t)
+	}
+	return &pb.Event{
+		Id:        e.ID,
+		AgencyId:  e.AgencyID,
+		Topic:     e.Topic,
+		Source:    e.SourceService,
+		Payload:   e.Payload,
+		CreatedAt: ts,
+	}
+}
+
+func toGRPCError(err error) error {
+	switch {
+	case errors.Is(err, codevaldpubsub.ErrTopicNotFound):
+		return status.Error(codes.NotFound, err.Error())
+	case errors.Is(err, codevaldpubsub.ErrTopicAlreadyRegistered):
+		return status.Error(codes.AlreadyExists, err.Error())
+	case errors.Is(err, codevaldpubsub.ErrEventNotFound):
+		return status.Error(codes.NotFound, err.Error())
+	case errors.Is(err, codevaldpubsub.ErrSubscriptionNotFound):
+		return status.Error(codes.NotFound, err.Error())
+	default:
+		return status.Errorf(codes.Internal, "internal error: %v", err)
+	}
+}
+
+// domainFromTopic extracts the first segment of a dot-separated topic string.
+func domainFromTopic(topic string) string {
+	for i, c := range topic {
+		if c == '.' {
+			return topic[:i]
 		}
 	}
-	// Fallback: caller might have passed a UUID directly.
-	for _, b := range branches {
-		if b.ID == branchName {
-			log.Printf("[resolveBranchID] fallback UUID match %q", b.ID)
-			return b.ID, nil
+	return topic
+}
+
+// actionFromTopic extracts the last segment of a dot-separated topic string.
+func actionFromTopic(topic string) string {
+	last := 0
+	for i, c := range topic {
+		if c == '.' {
+			last = i + 1
 		}
 	}
-	log.Printf("[resolveBranchID] no match for %q in repo %q", branchName, repoID)
-	return "", codevaldpubsub.ErrBranchNotFound
+	return topic[last:]
 }
