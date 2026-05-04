@@ -166,6 +166,17 @@ func (m *manager) RecordEvent(ctx context.Context, agencyID string, req RecordEv
 		ToID:     topics[0].ID,
 	})
 
+	// Create a Delivery("pending") for every active subscriber on this topic.
+	subs, err := m.GetSubscribersForTopic(ctx, agencyID, req.Topic)
+	if err != nil {
+		log.Printf("codevaldpubsub: RecordEvent: GetSubscribersForTopic: %v", err)
+	}
+	for _, sub := range subs {
+		if _, derr := m.RecordDelivery(ctx, agencyID, sub.ID, e.ID); derr != nil {
+			log.Printf("codevaldpubsub: RecordEvent: RecordDelivery sub=%s: %v", sub.ID, derr)
+		}
+	}
+
 	if m.pub != nil {
 		_ = m.pub.NotifyEvent(ctx, agencyID, req.Topic, e.ID)
 	}

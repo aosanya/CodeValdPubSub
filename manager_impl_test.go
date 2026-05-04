@@ -286,3 +286,93 @@ func TestAck_NotFound(t *testing.T) {
 		t.Errorf("Ack missing delivery: got %v, want ErrDeliveryNotFound", err)
 	}
 }
+
+// ── RecordEvent delivery fan-out ───────────────────────────────────────────
+
+// seedTopic creates a Topic entity via RegisterTopic.
+func seedTopic(t *testing.T, m Manager, pattern string) {
+	t.Helper()
+	if _, err := m.RegisterTopic(context.Background(), testAgency, RegisterTopicRequest{
+		Pattern: pattern,
+	}); err != nil {
+		t.Fatalf("seedTopic %q: %v", pattern, err)
+	}
+}
+
+func TestRecordEvent_CreatesDeliveryPerSubscriber(t *testing.T) {
+	m, dm := newTestManager()
+	ctx := context.Background()
+
+	const topic = "work.task.status.changed"
+	seedTopic(t, m, topic)
+
+	// Register two subscribers for the topic.
+	_, err := m.Subscribe(ctx, testAgency, SubscribeRequest{
+		SubscriberService: "codevaldai",
+		TopicPattern:      topic,
+	})
+	if err != nil {
+		t.Fatalf("Subscribe ai: %v", err)
+	}
+	_, err = m.Subscribe(ctx, testAgency, SubscribeRequest{
+		SubscriberService: "codevaldcomm",
+		TopicPattern:      topic,
+	})
+	if err != nil {
+		t.Fatalf("Subscribe comm: %v", err)
+	}
+
+	evt, err := m.RecordEvent(ctx, testAgency, RecordEventRequest{
+		Topic:         topic,
+		SourceService: "codevaldwork",
+	})
+	if err != nil {
+		t.Fatalf("RecordEvent: %v", err)
+	}
+
+	// Expect exactly two Delivery entities, both pending, both pointing to the event.
+	deliveries, err := dm.ListEntities(ctx, entitygraph.EntityFilter{
+		AgencyID:   testAgency,
+		TypeID:     "Delivery",
+		Properties: map[string]any{"event_id": evt.ID},
+	})
+	if err != nil {
+		t.Fatalf("list deliveries: %v", err)
+	}
+	if len(deliveries) != 2 {
+		t.Fatalf("want 2 Delivery records, got %d", len(deliveries))
+	}
+	for _, d := range deliveries {
+		if d.Properties["status"] != "pending" {
+			t.Errorf("delivery %s: status = %q, want \"pending\"", d.ID, d.Properties["status"])
+		}
+	}
+}
+
+func TestRecordEvent_NoSubscribersNoDelivery(t *testing.T) {
+	m, dm := newTestManager()
+	ctx := context.Background()
+
+	const topic = "work.task.status.changed"
+	seedTopic(t, m, topic)
+
+	evt, err := m.RecordEvent(ctx, testAgency, RecordEventRequest{
+		Topic:         topic,
+		SourceService: "codevaldwork",
+	})
+	if err != nil {
+		t.Fatalf("RecordEvent: %v", err)
+	}
+
+	deliveries, err := dm.ListEntities(ctx, entitygraph.EntityFilter{
+		AgencyID:   testAgency,
+		TypeID:     "Delivery",
+		Properties: map[string]any{"event_id": evt.ID},
+	})
+	if err != nil {
+		t.Fatalf("list deliveries: %v", err)
+	}
+	if len(deliveries) != 0 {
+		t.Errorf("want 0 Delivery records, got %d", len(deliveries))
+	}
+}
