@@ -99,3 +99,25 @@ type SubscriptionFilter struct {
 type UpdateSubscriptionRequest struct {
 	Status string
 }
+
+// ── Deliveries ────────────────────────────────────────────────────────────────
+
+// Delivery tracks the push state for a single (Subscription, Event) pair.
+// Status transitions: "pending" → "delivered" → "acked".
+type Delivery struct {
+	ID              string
+	SubscriptionID  string
+	EventID         string
+	Status          string // "pending" | "delivered" | "acked" | "failed"
+	AttemptCount    int
+	LastAttemptedAt string // RFC3339; empty until first attempt
+	AckedAt         string // RFC3339; empty until Ack is called
+	CreatedAt       string
+	UpdatedAt       string
+}
+
+// AckRequest identifies the (Subscription, Event) pair that Cross is acknowledging.
+type AckRequest struct {
+	SubscriptionID string
+	EventID        string
+}
