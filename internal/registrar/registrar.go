@@ -76,7 +76,8 @@ func pubsubRoutes() []types.RouteInfo {
 	return []types.RouteInfo{
 		// ── Events ──────────────────────────────────────────────────────────────
 		{Method: "POST", Pattern: "/pubsub/{agencyId}/events", GrpcMethod: svc + "/Publish"},
-		{Method: "GET", Pattern: "/pubsub/{agencyId}/events/{eventId}", GrpcMethod: svc + "/GetEvent"},
+		{Method: "GET", Pattern: "/pubsub/{agencyId}/events/{eventId}", GrpcMethod: svc + "/GetEvent",
+			PathBindings: []types.PathBinding{agencyBinding, {URLParam: "eventId", Field: "event_id"}}},
 		{Method: "GET", Pattern: "/pubsub/{agencyId}/events", GrpcMethod: svc + "/QueryEvents"},
 		// Alias: frontend uses /agencies/{agencyId}/events for the event feed.
 		{Method: "GET", Pattern: "/agencies/{agencyId}/events", GrpcMethod: svc + "/QueryEvents",
@@ -84,13 +85,18 @@ func pubsubRoutes() []types.RouteInfo {
 		// ── Topics ──────────────────────────────────────────────────────────────
 		{Method: "POST", Pattern: "/pubsub/{agencyId}/topics", GrpcMethod: svc + "/RegisterTopic"},
 		{Method: "GET", Pattern: "/pubsub/{agencyId}/topics", GrpcMethod: svc + "/ListTopics"},
-		{Method: "GET", Pattern: "/pubsub/{agencyId}/topics/{topicId}", GrpcMethod: svc + "/GetTopic"},
-		{Method: "DELETE", Pattern: "/pubsub/{agencyId}/topics/{topicId}", GrpcMethod: svc + "/DeleteTopic"},
+		{Method: "GET", Pattern: "/pubsub/{agencyId}/topics/{topicId}", GrpcMethod: svc + "/GetTopic",
+			PathBindings: []types.PathBinding{agencyBinding, {URLParam: "topicId", Field: "topic_id"}}},
+		{Method: "DELETE", Pattern: "/pubsub/{agencyId}/topics/{topicId}", GrpcMethod: svc + "/DeleteTopic",
+			PathBindings: []types.PathBinding{agencyBinding, {URLParam: "topicId", Field: "topic_id"}}},
 		// ── Subscriptions ────────────────────────────────────────────────────────
 		{Method: "POST", Pattern: "/pubsub/{agencyId}/subscriptions", GrpcMethod: svc + "/Subscribe"},
 		{Method: "GET", Pattern: "/pubsub/{agencyId}/subscriptions", GrpcMethod: svc + "/ListSubscriptions"},
-		{Method: "GET", Pattern: "/pubsub/{agencyId}/subscriptions/{subscriptionId}", GrpcMethod: svc + "/GetSubscription"},
-		{Method: "PUT", Pattern: "/pubsub/{agencyId}/subscriptions/{subscriptionId}", GrpcMethod: svc + "/UpdateSubscription"},
-		{Method: "DELETE", Pattern: "/pubsub/{agencyId}/subscriptions/{subscriptionId}", GrpcMethod: svc + "/Unsubscribe"},
+		{Method: "GET", Pattern: "/pubsub/{agencyId}/subscriptions/{subscriptionId}", GrpcMethod: svc + "/GetSubscription",
+			PathBindings: []types.PathBinding{agencyBinding, {URLParam: "subscriptionId", Field: "subscription_id"}}},
+		{Method: "PUT", Pattern: "/pubsub/{agencyId}/subscriptions/{subscriptionId}", GrpcMethod: svc + "/UpdateSubscription",
+			PathBindings: []types.PathBinding{agencyBinding, {URLParam: "subscriptionId", Field: "subscription_id"}}},
+		{Method: "DELETE", Pattern: "/pubsub/{agencyId}/subscriptions/{subscriptionId}", GrpcMethod: svc + "/Unsubscribe",
+			PathBindings: []types.PathBinding{agencyBinding, {URLParam: "subscriptionId", Field: "subscription_id"}}},
 	}
 }
