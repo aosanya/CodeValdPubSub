@@ -97,21 +97,20 @@ See: [mvp-details/query.md](mvp-details/query.md)
 
 ---
 
-## PUBSUB-005 — Delivery Loop & ACK
+## PUBSUB-005 — Delivery Entity, Ack RPC & Fan-out Handshake
 
 | Task | Status | Depends On |
 |------|--------|------------|
-| PUBSUB-005: Background delivery loop — push pending `PubSubDelivery` records to subscriber endpoints; exponential backoff retry; `Ack` implementation | 📋 Not Started | PUBSUB-003 |
+| PUBSUB-005a: Add `Delivery` entity to `schema.go`; add `Delivery`, `AckRequest` types to `models.go` | 📋 Not Started | PUBSUB-001 |
+| PUBSUB-005b: Add `Ack`, `GetSubscribersForTopic`, `RecordDelivery`, `MarkDelivered` to `Manager` interface and `manager_impl.go` | 📋 Not Started | PUBSUB-005a |
+| PUBSUB-005c: Extend `RecordEvent` to write `Delivery("pending")` records for each matching subscription | 📋 Not Started | PUBSUB-005b |
+| PUBSUB-005d: Add `Ack` and `GetSubscribersForTopic` RPCs to proto + server | 📋 Not Started | PUBSUB-005b |
 
-**Scope**:
-- Delivery loop runs as a goroutine in the service process
-- Polls `PubSubDelivery` where `status = pending` and `last_attempt_at < now - retry_interval`
-- Pushes event to subscriber's `DeliveryURL` via gRPC call
-- On success: updates delivery status to `delivered`
-- On `Ack` call: updates status to `acked`; stops retrying
-- On repeated failure: exponential backoff (1 s → 2 s → 4 s … capped at 5 min); after max attempts, status → `failed`
+**Key design**: Cross (not PubSub) performs the push to consumer services.
+PubSub's role is to store delivery records and expose `GetSubscribersForTopic`
+so Cross can discover whom to notify. Retry logic is deferred post-MVP.
 
-See: [mvp-details/delivery.md](mvp-details/delivery.md)
+See: [mvp-details/event-delivery.md](mvp-details/event-delivery.md)
 
 ---
 
