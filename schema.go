@@ -8,11 +8,14 @@
 //   - Topic        — registered named channel (mutable, stored in pubsub_topics)
 //   - Event        — immutable recorded event (append-only, stored in pubsub_events)
 //   - Subscription — a service's registration for a topic pattern (mutable, stored in pubsub_subscriptions)
+//   - Delivery     — per-subscription delivery state for a single event (mutable, stored in pubsub_deliveries)
 //
 // Graph topology:
 //
-//	Event ──for_topic──────────► Topic
-//	Subscription ──subscribes_to──► Topic
+//	Event        ──for_topic──────────► Topic
+//	Event        ──has_delivery───────► Delivery
+//	Subscription ──subscribes_to──────► Topic
+//	Subscription ──has_delivery───────► Delivery
 package codevaldpubsub
 
 import "github.com/aosanya/CodeValdSharedLib/types"
@@ -85,6 +88,13 @@ func DefaultPubSubSchema() types.Schema {
 						ToMany:      false,
 						Inverse:     "has_event",
 					},
+					{
+						Name:    "has_delivery",
+						Label:   "Deliveries",
+						ToType:  "Delivery",
+						ToMany:  true,
+						Inverse: "delivery_for_event",
+					},
 				},
 			},
 			{
@@ -109,6 +119,48 @@ func DefaultPubSubSchema() types.Schema {
 						ToType:      "Topic",
 						ToMany:      false,
 						Inverse:     "has_subscription",
+					},
+					{
+						Name:    "has_delivery",
+						Label:   "Deliveries",
+						ToType:  "Delivery",
+						ToMany:  true,
+						Inverse: "delivery_for_subscription",
+					},
+				},
+			},
+			{
+				Name:              "Delivery",
+				DisplayName:       "Delivery",
+				PathSegment:       "deliveries",
+				EntityIDParam:     "deliveryId",
+				StorageCollection: "pubsub_deliveries",
+				UniqueKey:         []string{"subscription_id", "event_id"},
+				Properties: []types.PropertyDefinition{
+					{Name: "subscription_id", Type: types.PropertyTypeString, Required: true},
+					{Name: "event_id", Type: types.PropertyTypeString, Required: true},
+					// status: "pending" | "delivered" | "acked" | "failed"
+					{Name: "status", Type: types.PropertyTypeString, Required: true},
+					{Name: "attempt_count", Type: types.PropertyTypeNumber},
+					{Name: "last_attempted_at", Type: types.PropertyTypeString},
+					{Name: "acked_at", Type: types.PropertyTypeString},
+					{Name: "created_at", Type: types.PropertyTypeString},
+					{Name: "updated_at", Type: types.PropertyTypeString},
+				},
+				Relationships: []types.RelationshipDefinition{
+					{
+						Name:    "delivery_for_event",
+						Label:   "Event",
+						ToType:  "Event",
+						ToMany:  false,
+						Inverse: "has_delivery",
+					},
+					{
+						Name:    "delivery_for_subscription",
+						Label:   "Subscription",
+						ToType:  "Subscription",
+						ToMany:  false,
+						Inverse: "has_delivery",
 					},
 				},
 			},
