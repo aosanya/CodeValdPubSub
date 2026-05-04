@@ -101,7 +101,7 @@ See: [mvp-details/query.md](mvp-details/query.md)
 
 | Task | Status | Depends On |
 |------|--------|------------|
-| PUBSUB-005a: Add `Delivery` entity to `schema.go`; add `Delivery`, `AckRequest` types to `models.go` | 🚀 In Progress | PUBSUB-001 |
+| ~~PUBSUB-005a~~: Add `Delivery` entity to `schema.go`; add `Delivery`, `AckRequest` types to `models.go` | ✅ Done | PUBSUB-001 |
 | PUBSUB-005b: Add `Ack`, `GetSubscribersForTopic`, `RecordDelivery`, `MarkDelivered` to `Manager` interface and `manager_impl.go` | 📋 Not Started | PUBSUB-005a |
 | PUBSUB-005c: Extend `RecordEvent` to write `Delivery("pending")` records for each matching subscription | 📋 Not Started | PUBSUB-005b |
 | PUBSUB-005d: Add `Ack` and `GetSubscribersForTopic` RPCs to proto + server | 📋 Not Started | PUBSUB-005b |

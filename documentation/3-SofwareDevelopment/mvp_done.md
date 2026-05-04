@@ -2,4 +2,4 @@
 
 | Task | Title | Completed |
 |------|-------|-----------|
-| _(none yet)_ | — | — |
+| PUBSUB-005a | `Delivery` entity in schema + `Delivery`/`AckRequest` types in `models.go` | 2026-05-04 |
