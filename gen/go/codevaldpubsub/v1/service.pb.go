@@ -224,7 +224,8 @@ func (x *PublishResponse) GetEvent() *Event {
 // GetEventRequest retrieves a specific event by its entity ID.
 type GetEventRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	AgencyId      string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	EventId       string                 `protobuf:"bytes,2,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -257,6 +258,13 @@ func (x *GetEventRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetEventRequest.ProtoReflect.Descriptor instead.
 func (*GetEventRequest) Descriptor() ([]byte, []int) {
 	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetEventRequest) GetAgencyId() string {
+	if x != nil {
+		return x.AgencyId
+	}
+	return ""
 }
 
 func (x *GetEventRequest) GetEventId() string {
@@ -380,6 +388,1080 @@ func (x *QueryEventsResponse) GetEvents() []*Event {
 	return nil
 }
 
+// Topic is a registered named channel that groups related Events.
+type Topic struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Pattern       string                 `protobuf:"bytes,2,opt,name=pattern,proto3" json:"pattern,omitempty"`
+	Domain        string                 `protobuf:"bytes,3,opt,name=domain,proto3" json:"domain,omitempty"`
+	Action        string                 `protobuf:"bytes,4,opt,name=action,proto3" json:"action,omitempty"`
+	SourceService string                 `protobuf:"bytes,5,opt,name=source_service,json=sourceService,proto3" json:"source_service,omitempty"`
+	Description   string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Topic) Reset() {
+	*x = Topic{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Topic) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Topic) ProtoMessage() {}
+
+func (x *Topic) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Topic.ProtoReflect.Descriptor instead.
+func (*Topic) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *Topic) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Topic) GetPattern() string {
+	if x != nil {
+		return x.Pattern
+	}
+	return ""
+}
+
+func (x *Topic) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *Topic) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *Topic) GetSourceService() string {
+	if x != nil {
+		return x.SourceService
+	}
+	return ""
+}
+
+func (x *Topic) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *Topic) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *Topic) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+// RegisterTopicRequest creates a new Topic.
+type RegisterTopicRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AgencyId      string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	Pattern       string                 `protobuf:"bytes,2,opt,name=pattern,proto3" json:"pattern,omitempty"`
+	Domain        string                 `protobuf:"bytes,3,opt,name=domain,proto3" json:"domain,omitempty"`
+	Action        string                 `protobuf:"bytes,4,opt,name=action,proto3" json:"action,omitempty"`
+	SourceService string                 `protobuf:"bytes,5,opt,name=source_service,json=sourceService,proto3" json:"source_service,omitempty"`
+	Description   string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterTopicRequest) Reset() {
+	*x = RegisterTopicRequest{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterTopicRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterTopicRequest) ProtoMessage() {}
+
+func (x *RegisterTopicRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterTopicRequest.ProtoReflect.Descriptor instead.
+func (*RegisterTopicRequest) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RegisterTopicRequest) GetAgencyId() string {
+	if x != nil {
+		return x.AgencyId
+	}
+	return ""
+}
+
+func (x *RegisterTopicRequest) GetPattern() string {
+	if x != nil {
+		return x.Pattern
+	}
+	return ""
+}
+
+func (x *RegisterTopicRequest) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *RegisterTopicRequest) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *RegisterTopicRequest) GetSourceService() string {
+	if x != nil {
+		return x.SourceService
+	}
+	return ""
+}
+
+func (x *RegisterTopicRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+// RegisterTopicResponse returns the created Topic.
+type RegisterTopicResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Topic         *Topic                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterTopicResponse) Reset() {
+	*x = RegisterTopicResponse{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterTopicResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterTopicResponse) ProtoMessage() {}
+
+func (x *RegisterTopicResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterTopicResponse.ProtoReflect.Descriptor instead.
+func (*RegisterTopicResponse) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *RegisterTopicResponse) GetTopic() *Topic {
+	if x != nil {
+		return x.Topic
+	}
+	return nil
+}
+
+// GetTopicRequest retrieves a Topic by ID.
+type GetTopicRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AgencyId      string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	TopicId       string                 `protobuf:"bytes,2,opt,name=topic_id,json=topicId,proto3" json:"topic_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTopicRequest) Reset() {
+	*x = GetTopicRequest{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTopicRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTopicRequest) ProtoMessage() {}
+
+func (x *GetTopicRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTopicRequest.ProtoReflect.Descriptor instead.
+func (*GetTopicRequest) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetTopicRequest) GetAgencyId() string {
+	if x != nil {
+		return x.AgencyId
+	}
+	return ""
+}
+
+func (x *GetTopicRequest) GetTopicId() string {
+	if x != nil {
+		return x.TopicId
+	}
+	return ""
+}
+
+// ListTopicsRequest lists Topics with optional filters.
+type ListTopicsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AgencyId      string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	Action        string                 `protobuf:"bytes,3,opt,name=action,proto3" json:"action,omitempty"`
+	Limit         int32                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTopicsRequest) Reset() {
+	*x = ListTopicsRequest{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTopicsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTopicsRequest) ProtoMessage() {}
+
+func (x *ListTopicsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTopicsRequest.ProtoReflect.Descriptor instead.
+func (*ListTopicsRequest) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ListTopicsRequest) GetAgencyId() string {
+	if x != nil {
+		return x.AgencyId
+	}
+	return ""
+}
+
+func (x *ListTopicsRequest) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *ListTopicsRequest) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *ListTopicsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+// ListTopicsResponse returns the matched Topics.
+type ListTopicsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Topics        []*Topic               `protobuf:"bytes,1,rep,name=topics,proto3" json:"topics,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTopicsResponse) Reset() {
+	*x = ListTopicsResponse{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTopicsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTopicsResponse) ProtoMessage() {}
+
+func (x *ListTopicsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTopicsResponse.ProtoReflect.Descriptor instead.
+func (*ListTopicsResponse) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ListTopicsResponse) GetTopics() []*Topic {
+	if x != nil {
+		return x.Topics
+	}
+	return nil
+}
+
+// DeleteTopicRequest deletes a Topic by ID.
+type DeleteTopicRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AgencyId      string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	TopicId       string                 `protobuf:"bytes,2,opt,name=topic_id,json=topicId,proto3" json:"topic_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteTopicRequest) Reset() {
+	*x = DeleteTopicRequest{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteTopicRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteTopicRequest) ProtoMessage() {}
+
+func (x *DeleteTopicRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteTopicRequest.ProtoReflect.Descriptor instead.
+func (*DeleteTopicRequest) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *DeleteTopicRequest) GetAgencyId() string {
+	if x != nil {
+		return x.AgencyId
+	}
+	return ""
+}
+
+func (x *DeleteTopicRequest) GetTopicId() string {
+	if x != nil {
+		return x.TopicId
+	}
+	return ""
+}
+
+// DeleteTopicResponse is empty on success.
+type DeleteTopicResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteTopicResponse) Reset() {
+	*x = DeleteTopicResponse{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteTopicResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteTopicResponse) ProtoMessage() {}
+
+func (x *DeleteTopicResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteTopicResponse.ProtoReflect.Descriptor instead.
+func (*DeleteTopicResponse) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{13}
+}
+
+// Subscription represents a service's registration to receive events.
+type Subscription struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SubscriberId      string                 `protobuf:"bytes,2,opt,name=subscriber_id,json=subscriberId,proto3" json:"subscriber_id,omitempty"`
+	SubscriberService string                 `protobuf:"bytes,3,opt,name=subscriber_service,json=subscriberService,proto3" json:"subscriber_service,omitempty"`
+	TopicPattern      string                 `protobuf:"bytes,4,opt,name=topic_pattern,json=topicPattern,proto3" json:"topic_pattern,omitempty"`
+	Status            string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	CreatedAt         *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt         *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *Subscription) Reset() {
+	*x = Subscription{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Subscription) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Subscription) ProtoMessage() {}
+
+func (x *Subscription) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Subscription.ProtoReflect.Descriptor instead.
+func (*Subscription) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *Subscription) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Subscription) GetSubscriberId() string {
+	if x != nil {
+		return x.SubscriberId
+	}
+	return ""
+}
+
+func (x *Subscription) GetSubscriberService() string {
+	if x != nil {
+		return x.SubscriberService
+	}
+	return ""
+}
+
+func (x *Subscription) GetTopicPattern() string {
+	if x != nil {
+		return x.TopicPattern
+	}
+	return ""
+}
+
+func (x *Subscription) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *Subscription) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *Subscription) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+// SubscribeRequest creates a new Subscription.
+type SubscribeRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	AgencyId          string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	SubscriberId      string                 `protobuf:"bytes,2,opt,name=subscriber_id,json=subscriberId,proto3" json:"subscriber_id,omitempty"`
+	SubscriberService string                 `protobuf:"bytes,3,opt,name=subscriber_service,json=subscriberService,proto3" json:"subscriber_service,omitempty"`
+	TopicPattern      string                 `protobuf:"bytes,4,opt,name=topic_pattern,json=topicPattern,proto3" json:"topic_pattern,omitempty"`
+	TopicId           string                 `protobuf:"bytes,5,opt,name=topic_id,json=topicId,proto3" json:"topic_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *SubscribeRequest) Reset() {
+	*x = SubscribeRequest{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubscribeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeRequest) ProtoMessage() {}
+
+func (x *SubscribeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeRequest.ProtoReflect.Descriptor instead.
+func (*SubscribeRequest) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *SubscribeRequest) GetAgencyId() string {
+	if x != nil {
+		return x.AgencyId
+	}
+	return ""
+}
+
+func (x *SubscribeRequest) GetSubscriberId() string {
+	if x != nil {
+		return x.SubscriberId
+	}
+	return ""
+}
+
+func (x *SubscribeRequest) GetSubscriberService() string {
+	if x != nil {
+		return x.SubscriberService
+	}
+	return ""
+}
+
+func (x *SubscribeRequest) GetTopicPattern() string {
+	if x != nil {
+		return x.TopicPattern
+	}
+	return ""
+}
+
+func (x *SubscribeRequest) GetTopicId() string {
+	if x != nil {
+		return x.TopicId
+	}
+	return ""
+}
+
+// SubscribeResponse returns the created Subscription.
+type SubscribeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Subscription  *Subscription          `protobuf:"bytes,1,opt,name=subscription,proto3" json:"subscription,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubscribeResponse) Reset() {
+	*x = SubscribeResponse{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubscribeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeResponse) ProtoMessage() {}
+
+func (x *SubscribeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeResponse.ProtoReflect.Descriptor instead.
+func (*SubscribeResponse) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *SubscribeResponse) GetSubscription() *Subscription {
+	if x != nil {
+		return x.Subscription
+	}
+	return nil
+}
+
+// GetSubscriptionRequest retrieves a Subscription by ID.
+type GetSubscriptionRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AgencyId       string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	SubscriptionId string                 `protobuf:"bytes,2,opt,name=subscription_id,json=subscriptionId,proto3" json:"subscription_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetSubscriptionRequest) Reset() {
+	*x = GetSubscriptionRequest{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSubscriptionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSubscriptionRequest) ProtoMessage() {}
+
+func (x *GetSubscriptionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSubscriptionRequest.ProtoReflect.Descriptor instead.
+func (*GetSubscriptionRequest) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *GetSubscriptionRequest) GetAgencyId() string {
+	if x != nil {
+		return x.AgencyId
+	}
+	return ""
+}
+
+func (x *GetSubscriptionRequest) GetSubscriptionId() string {
+	if x != nil {
+		return x.SubscriptionId
+	}
+	return ""
+}
+
+// ListSubscriptionsRequest lists Subscriptions with optional filters.
+type ListSubscriptionsRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	AgencyId          string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	SubscriberId      string                 `protobuf:"bytes,2,opt,name=subscriber_id,json=subscriberId,proto3" json:"subscriber_id,omitempty"`
+	SubscriberService string                 `protobuf:"bytes,3,opt,name=subscriber_service,json=subscriberService,proto3" json:"subscriber_service,omitempty"`
+	Status            string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	Limit             int32                  `protobuf:"varint,5,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ListSubscriptionsRequest) Reset() {
+	*x = ListSubscriptionsRequest{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSubscriptionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSubscriptionsRequest) ProtoMessage() {}
+
+func (x *ListSubscriptionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSubscriptionsRequest.ProtoReflect.Descriptor instead.
+func (*ListSubscriptionsRequest) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ListSubscriptionsRequest) GetAgencyId() string {
+	if x != nil {
+		return x.AgencyId
+	}
+	return ""
+}
+
+func (x *ListSubscriptionsRequest) GetSubscriberId() string {
+	if x != nil {
+		return x.SubscriberId
+	}
+	return ""
+}
+
+func (x *ListSubscriptionsRequest) GetSubscriberService() string {
+	if x != nil {
+		return x.SubscriberService
+	}
+	return ""
+}
+
+func (x *ListSubscriptionsRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *ListSubscriptionsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+// ListSubscriptionsResponse returns the matched Subscriptions.
+type ListSubscriptionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Subscriptions []*Subscription        `protobuf:"bytes,1,rep,name=subscriptions,proto3" json:"subscriptions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSubscriptionsResponse) Reset() {
+	*x = ListSubscriptionsResponse{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSubscriptionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSubscriptionsResponse) ProtoMessage() {}
+
+func (x *ListSubscriptionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSubscriptionsResponse.ProtoReflect.Descriptor instead.
+func (*ListSubscriptionsResponse) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ListSubscriptionsResponse) GetSubscriptions() []*Subscription {
+	if x != nil {
+		return x.Subscriptions
+	}
+	return nil
+}
+
+// UpdateSubscriptionRequest patches a Subscription's mutable fields.
+type UpdateSubscriptionRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AgencyId       string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	SubscriptionId string                 `protobuf:"bytes,2,opt,name=subscription_id,json=subscriptionId,proto3" json:"subscription_id,omitempty"`
+	Status         string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *UpdateSubscriptionRequest) Reset() {
+	*x = UpdateSubscriptionRequest{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateSubscriptionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateSubscriptionRequest) ProtoMessage() {}
+
+func (x *UpdateSubscriptionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateSubscriptionRequest.ProtoReflect.Descriptor instead.
+func (*UpdateSubscriptionRequest) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *UpdateSubscriptionRequest) GetAgencyId() string {
+	if x != nil {
+		return x.AgencyId
+	}
+	return ""
+}
+
+func (x *UpdateSubscriptionRequest) GetSubscriptionId() string {
+	if x != nil {
+		return x.SubscriptionId
+	}
+	return ""
+}
+
+func (x *UpdateSubscriptionRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+// UpdateSubscriptionResponse returns the updated Subscription.
+type UpdateSubscriptionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Subscription  *Subscription          `protobuf:"bytes,1,opt,name=subscription,proto3" json:"subscription,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateSubscriptionResponse) Reset() {
+	*x = UpdateSubscriptionResponse{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateSubscriptionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateSubscriptionResponse) ProtoMessage() {}
+
+func (x *UpdateSubscriptionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateSubscriptionResponse.ProtoReflect.Descriptor instead.
+func (*UpdateSubscriptionResponse) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *UpdateSubscriptionResponse) GetSubscription() *Subscription {
+	if x != nil {
+		return x.Subscription
+	}
+	return nil
+}
+
+// UnsubscribeRequest cancels a Subscription.
+type UnsubscribeRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AgencyId       string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	SubscriptionId string                 `protobuf:"bytes,2,opt,name=subscription_id,json=subscriptionId,proto3" json:"subscription_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *UnsubscribeRequest) Reset() {
+	*x = UnsubscribeRequest{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnsubscribeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnsubscribeRequest) ProtoMessage() {}
+
+func (x *UnsubscribeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnsubscribeRequest.ProtoReflect.Descriptor instead.
+func (*UnsubscribeRequest) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *UnsubscribeRequest) GetAgencyId() string {
+	if x != nil {
+		return x.AgencyId
+	}
+	return ""
+}
+
+func (x *UnsubscribeRequest) GetSubscriptionId() string {
+	if x != nil {
+		return x.SubscriptionId
+	}
+	return ""
+}
+
+// UnsubscribeResponse is empty on success.
+type UnsubscribeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnsubscribeResponse) Reset() {
+	*x = UnsubscribeResponse{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnsubscribeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnsubscribeResponse) ProtoMessage() {}
+
+func (x *UnsubscribeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnsubscribeResponse.ProtoReflect.Descriptor instead.
+func (*UnsubscribeResponse) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{23}
+}
+
 var File_codevaldpubsub_v1_service_proto protoreflect.FileDescriptor
 
 const file_codevaldpubsub_v1_service_proto_rawDesc = "" +
@@ -399,20 +1481,104 @@ const file_codevaldpubsub_v1_service_proto_rawDesc = "" +
 	"\x06source\x18\x03 \x01(\tR\x06source\x12\x18\n" +
 	"\apayload\x18\x04 \x01(\tR\apayload\"A\n" +
 	"\x0fPublishResponse\x12.\n" +
-	"\x05event\x18\x01 \x01(\v2\x18.codevaldpubsub.v1.EventR\x05event\",\n" +
-	"\x0fGetEventRequest\x12\x19\n" +
-	"\bevent_id\x18\x01 \x01(\tR\aeventId\"u\n" +
+	"\x05event\x18\x01 \x01(\v2\x18.codevaldpubsub.v1.EventR\x05event\"I\n" +
+	"\x0fGetEventRequest\x12\x1b\n" +
+	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12\x19\n" +
+	"\bevent_id\x18\x02 \x01(\tR\aeventId\"u\n" +
 	"\x12QueryEventsRequest\x12\x1b\n" +
 	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12\x14\n" +
 	"\x05topic\x18\x02 \x01(\tR\x05topic\x12\x16\n" +
 	"\x06source\x18\x03 \x01(\tR\x06source\x12\x14\n" +
 	"\x05limit\x18\x04 \x01(\x05R\x05limit\"G\n" +
 	"\x13QueryEventsResponse\x120\n" +
-	"\x06events\x18\x01 \x03(\v2\x18.codevaldpubsub.v1.EventR\x06events2\x89\x02\n" +
+	"\x06events\x18\x01 \x03(\v2\x18.codevaldpubsub.v1.EventR\x06events\"\xa0\x02\n" +
+	"\x05Topic\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\apattern\x18\x02 \x01(\tR\apattern\x12\x16\n" +
+	"\x06domain\x18\x03 \x01(\tR\x06domain\x12\x16\n" +
+	"\x06action\x18\x04 \x01(\tR\x06action\x12%\n" +
+	"\x0esource_service\x18\x05 \x01(\tR\rsourceService\x12 \n" +
+	"\vdescription\x18\x06 \x01(\tR\vdescription\x129\n" +
+	"\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xc6\x01\n" +
+	"\x14RegisterTopicRequest\x12\x1b\n" +
+	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12\x18\n" +
+	"\apattern\x18\x02 \x01(\tR\apattern\x12\x16\n" +
+	"\x06domain\x18\x03 \x01(\tR\x06domain\x12\x16\n" +
+	"\x06action\x18\x04 \x01(\tR\x06action\x12%\n" +
+	"\x0esource_service\x18\x05 \x01(\tR\rsourceService\x12 \n" +
+	"\vdescription\x18\x06 \x01(\tR\vdescription\"G\n" +
+	"\x15RegisterTopicResponse\x12.\n" +
+	"\x05topic\x18\x01 \x01(\v2\x18.codevaldpubsub.v1.TopicR\x05topic\"I\n" +
+	"\x0fGetTopicRequest\x12\x1b\n" +
+	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12\x19\n" +
+	"\btopic_id\x18\x02 \x01(\tR\atopicId\"v\n" +
+	"\x11ListTopicsRequest\x12\x1b\n" +
+	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12\x16\n" +
+	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x16\n" +
+	"\x06action\x18\x03 \x01(\tR\x06action\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x05R\x05limit\"F\n" +
+	"\x12ListTopicsResponse\x120\n" +
+	"\x06topics\x18\x01 \x03(\v2\x18.codevaldpubsub.v1.TopicR\x06topics\"L\n" +
+	"\x12DeleteTopicRequest\x12\x1b\n" +
+	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12\x19\n" +
+	"\btopic_id\x18\x02 \x01(\tR\atopicId\"\x15\n" +
+	"\x13DeleteTopicResponse\"\xa5\x02\n" +
+	"\fSubscription\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12#\n" +
+	"\rsubscriber_id\x18\x02 \x01(\tR\fsubscriberId\x12-\n" +
+	"\x12subscriber_service\x18\x03 \x01(\tR\x11subscriberService\x12#\n" +
+	"\rtopic_pattern\x18\x04 \x01(\tR\ftopicPattern\x12\x16\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status\x129\n" +
+	"\n" +
+	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xc3\x01\n" +
+	"\x10SubscribeRequest\x12\x1b\n" +
+	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12#\n" +
+	"\rsubscriber_id\x18\x02 \x01(\tR\fsubscriberId\x12-\n" +
+	"\x12subscriber_service\x18\x03 \x01(\tR\x11subscriberService\x12#\n" +
+	"\rtopic_pattern\x18\x04 \x01(\tR\ftopicPattern\x12\x19\n" +
+	"\btopic_id\x18\x05 \x01(\tR\atopicId\"X\n" +
+	"\x11SubscribeResponse\x12C\n" +
+	"\fsubscription\x18\x01 \x01(\v2\x1f.codevaldpubsub.v1.SubscriptionR\fsubscription\"^\n" +
+	"\x16GetSubscriptionRequest\x12\x1b\n" +
+	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12'\n" +
+	"\x0fsubscription_id\x18\x02 \x01(\tR\x0esubscriptionId\"\xb9\x01\n" +
+	"\x18ListSubscriptionsRequest\x12\x1b\n" +
+	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12#\n" +
+	"\rsubscriber_id\x18\x02 \x01(\tR\fsubscriberId\x12-\n" +
+	"\x12subscriber_service\x18\x03 \x01(\tR\x11subscriberService\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x12\x14\n" +
+	"\x05limit\x18\x05 \x01(\x05R\x05limit\"b\n" +
+	"\x19ListSubscriptionsResponse\x12E\n" +
+	"\rsubscriptions\x18\x01 \x03(\v2\x1f.codevaldpubsub.v1.SubscriptionR\rsubscriptions\"y\n" +
+	"\x19UpdateSubscriptionRequest\x12\x1b\n" +
+	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12'\n" +
+	"\x0fsubscription_id\x18\x02 \x01(\tR\x0esubscriptionId\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\"a\n" +
+	"\x1aUpdateSubscriptionResponse\x12C\n" +
+	"\fsubscription\x18\x01 \x01(\v2\x1f.codevaldpubsub.v1.SubscriptionR\fsubscription\"Z\n" +
+	"\x12UnsubscribeRequest\x12\x1b\n" +
+	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12'\n" +
+	"\x0fsubscription_id\x18\x02 \x01(\tR\x0esubscriptionId\"\x15\n" +
+	"\x13UnsubscribeResponse2\xe8\b\n" +
 	"\rPubSubService\x12P\n" +
 	"\aPublish\x12!.codevaldpubsub.v1.PublishRequest\x1a\".codevaldpubsub.v1.PublishResponse\x12H\n" +
 	"\bGetEvent\x12\".codevaldpubsub.v1.GetEventRequest\x1a\x18.codevaldpubsub.v1.Event\x12\\\n" +
-	"\vQueryEvents\x12%.codevaldpubsub.v1.QueryEventsRequest\x1a&.codevaldpubsub.v1.QueryEventsResponseBMZKgithub.com/aosanya/CodeValdPubSub/gen/go/codevaldpubsub/v1;codevaldpubsubv1b\x06proto3"
+	"\vQueryEvents\x12%.codevaldpubsub.v1.QueryEventsRequest\x1a&.codevaldpubsub.v1.QueryEventsResponse\x12b\n" +
+	"\rRegisterTopic\x12'.codevaldpubsub.v1.RegisterTopicRequest\x1a(.codevaldpubsub.v1.RegisterTopicResponse\x12H\n" +
+	"\bGetTopic\x12\".codevaldpubsub.v1.GetTopicRequest\x1a\x18.codevaldpubsub.v1.Topic\x12Y\n" +
+	"\n" +
+	"ListTopics\x12$.codevaldpubsub.v1.ListTopicsRequest\x1a%.codevaldpubsub.v1.ListTopicsResponse\x12\\\n" +
+	"\vDeleteTopic\x12%.codevaldpubsub.v1.DeleteTopicRequest\x1a&.codevaldpubsub.v1.DeleteTopicResponse\x12V\n" +
+	"\tSubscribe\x12#.codevaldpubsub.v1.SubscribeRequest\x1a$.codevaldpubsub.v1.SubscribeResponse\x12]\n" +
+	"\x0fGetSubscription\x12).codevaldpubsub.v1.GetSubscriptionRequest\x1a\x1f.codevaldpubsub.v1.Subscription\x12n\n" +
+	"\x11ListSubscriptions\x12+.codevaldpubsub.v1.ListSubscriptionsRequest\x1a,.codevaldpubsub.v1.ListSubscriptionsResponse\x12q\n" +
+	"\x12UpdateSubscription\x12,.codevaldpubsub.v1.UpdateSubscriptionRequest\x1a-.codevaldpubsub.v1.UpdateSubscriptionResponse\x12\\\n" +
+	"\vUnsubscribe\x12%.codevaldpubsub.v1.UnsubscribeRequest\x1a&.codevaldpubsub.v1.UnsubscribeResponseBMZKgithub.com/aosanya/CodeValdPubSub/gen/go/codevaldpubsub/v1;codevaldpubsubv1b\x06proto3"
 
 var (
 	file_codevaldpubsub_v1_service_proto_rawDescOnce sync.Once
@@ -426,31 +1592,76 @@ func file_codevaldpubsub_v1_service_proto_rawDescGZIP() []byte {
 	return file_codevaldpubsub_v1_service_proto_rawDescData
 }
 
-var file_codevaldpubsub_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_codevaldpubsub_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_codevaldpubsub_v1_service_proto_goTypes = []any{
-	(*Event)(nil),                 // 0: codevaldpubsub.v1.Event
-	(*PublishRequest)(nil),        // 1: codevaldpubsub.v1.PublishRequest
-	(*PublishResponse)(nil),       // 2: codevaldpubsub.v1.PublishResponse
-	(*GetEventRequest)(nil),       // 3: codevaldpubsub.v1.GetEventRequest
-	(*QueryEventsRequest)(nil),    // 4: codevaldpubsub.v1.QueryEventsRequest
-	(*QueryEventsResponse)(nil),   // 5: codevaldpubsub.v1.QueryEventsResponse
-	(*timestamppb.Timestamp)(nil), // 6: google.protobuf.Timestamp
+	(*Event)(nil),                      // 0: codevaldpubsub.v1.Event
+	(*PublishRequest)(nil),             // 1: codevaldpubsub.v1.PublishRequest
+	(*PublishResponse)(nil),            // 2: codevaldpubsub.v1.PublishResponse
+	(*GetEventRequest)(nil),            // 3: codevaldpubsub.v1.GetEventRequest
+	(*QueryEventsRequest)(nil),         // 4: codevaldpubsub.v1.QueryEventsRequest
+	(*QueryEventsResponse)(nil),        // 5: codevaldpubsub.v1.QueryEventsResponse
+	(*Topic)(nil),                      // 6: codevaldpubsub.v1.Topic
+	(*RegisterTopicRequest)(nil),       // 7: codevaldpubsub.v1.RegisterTopicRequest
+	(*RegisterTopicResponse)(nil),      // 8: codevaldpubsub.v1.RegisterTopicResponse
+	(*GetTopicRequest)(nil),            // 9: codevaldpubsub.v1.GetTopicRequest
+	(*ListTopicsRequest)(nil),          // 10: codevaldpubsub.v1.ListTopicsRequest
+	(*ListTopicsResponse)(nil),         // 11: codevaldpubsub.v1.ListTopicsResponse
+	(*DeleteTopicRequest)(nil),         // 12: codevaldpubsub.v1.DeleteTopicRequest
+	(*DeleteTopicResponse)(nil),        // 13: codevaldpubsub.v1.DeleteTopicResponse
+	(*Subscription)(nil),               // 14: codevaldpubsub.v1.Subscription
+	(*SubscribeRequest)(nil),           // 15: codevaldpubsub.v1.SubscribeRequest
+	(*SubscribeResponse)(nil),          // 16: codevaldpubsub.v1.SubscribeResponse
+	(*GetSubscriptionRequest)(nil),     // 17: codevaldpubsub.v1.GetSubscriptionRequest
+	(*ListSubscriptionsRequest)(nil),   // 18: codevaldpubsub.v1.ListSubscriptionsRequest
+	(*ListSubscriptionsResponse)(nil),  // 19: codevaldpubsub.v1.ListSubscriptionsResponse
+	(*UpdateSubscriptionRequest)(nil),  // 20: codevaldpubsub.v1.UpdateSubscriptionRequest
+	(*UpdateSubscriptionResponse)(nil), // 21: codevaldpubsub.v1.UpdateSubscriptionResponse
+	(*UnsubscribeRequest)(nil),         // 22: codevaldpubsub.v1.UnsubscribeRequest
+	(*UnsubscribeResponse)(nil),        // 23: codevaldpubsub.v1.UnsubscribeResponse
+	(*timestamppb.Timestamp)(nil),      // 24: google.protobuf.Timestamp
 }
 var file_codevaldpubsub_v1_service_proto_depIdxs = []int32{
-	6, // 0: codevaldpubsub.v1.Event.created_at:type_name -> google.protobuf.Timestamp
-	0, // 1: codevaldpubsub.v1.PublishResponse.event:type_name -> codevaldpubsub.v1.Event
-	0, // 2: codevaldpubsub.v1.QueryEventsResponse.events:type_name -> codevaldpubsub.v1.Event
-	1, // 3: codevaldpubsub.v1.PubSubService.Publish:input_type -> codevaldpubsub.v1.PublishRequest
-	3, // 4: codevaldpubsub.v1.PubSubService.GetEvent:input_type -> codevaldpubsub.v1.GetEventRequest
-	4, // 5: codevaldpubsub.v1.PubSubService.QueryEvents:input_type -> codevaldpubsub.v1.QueryEventsRequest
-	2, // 6: codevaldpubsub.v1.PubSubService.Publish:output_type -> codevaldpubsub.v1.PublishResponse
-	0, // 7: codevaldpubsub.v1.PubSubService.GetEvent:output_type -> codevaldpubsub.v1.Event
-	5, // 8: codevaldpubsub.v1.PubSubService.QueryEvents:output_type -> codevaldpubsub.v1.QueryEventsResponse
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	24, // 0: codevaldpubsub.v1.Event.created_at:type_name -> google.protobuf.Timestamp
+	0,  // 1: codevaldpubsub.v1.PublishResponse.event:type_name -> codevaldpubsub.v1.Event
+	0,  // 2: codevaldpubsub.v1.QueryEventsResponse.events:type_name -> codevaldpubsub.v1.Event
+	24, // 3: codevaldpubsub.v1.Topic.created_at:type_name -> google.protobuf.Timestamp
+	24, // 4: codevaldpubsub.v1.Topic.updated_at:type_name -> google.protobuf.Timestamp
+	6,  // 5: codevaldpubsub.v1.RegisterTopicResponse.topic:type_name -> codevaldpubsub.v1.Topic
+	6,  // 6: codevaldpubsub.v1.ListTopicsResponse.topics:type_name -> codevaldpubsub.v1.Topic
+	24, // 7: codevaldpubsub.v1.Subscription.created_at:type_name -> google.protobuf.Timestamp
+	24, // 8: codevaldpubsub.v1.Subscription.updated_at:type_name -> google.protobuf.Timestamp
+	14, // 9: codevaldpubsub.v1.SubscribeResponse.subscription:type_name -> codevaldpubsub.v1.Subscription
+	14, // 10: codevaldpubsub.v1.ListSubscriptionsResponse.subscriptions:type_name -> codevaldpubsub.v1.Subscription
+	14, // 11: codevaldpubsub.v1.UpdateSubscriptionResponse.subscription:type_name -> codevaldpubsub.v1.Subscription
+	1,  // 12: codevaldpubsub.v1.PubSubService.Publish:input_type -> codevaldpubsub.v1.PublishRequest
+	3,  // 13: codevaldpubsub.v1.PubSubService.GetEvent:input_type -> codevaldpubsub.v1.GetEventRequest
+	4,  // 14: codevaldpubsub.v1.PubSubService.QueryEvents:input_type -> codevaldpubsub.v1.QueryEventsRequest
+	7,  // 15: codevaldpubsub.v1.PubSubService.RegisterTopic:input_type -> codevaldpubsub.v1.RegisterTopicRequest
+	9,  // 16: codevaldpubsub.v1.PubSubService.GetTopic:input_type -> codevaldpubsub.v1.GetTopicRequest
+	10, // 17: codevaldpubsub.v1.PubSubService.ListTopics:input_type -> codevaldpubsub.v1.ListTopicsRequest
+	12, // 18: codevaldpubsub.v1.PubSubService.DeleteTopic:input_type -> codevaldpubsub.v1.DeleteTopicRequest
+	15, // 19: codevaldpubsub.v1.PubSubService.Subscribe:input_type -> codevaldpubsub.v1.SubscribeRequest
+	17, // 20: codevaldpubsub.v1.PubSubService.GetSubscription:input_type -> codevaldpubsub.v1.GetSubscriptionRequest
+	18, // 21: codevaldpubsub.v1.PubSubService.ListSubscriptions:input_type -> codevaldpubsub.v1.ListSubscriptionsRequest
+	20, // 22: codevaldpubsub.v1.PubSubService.UpdateSubscription:input_type -> codevaldpubsub.v1.UpdateSubscriptionRequest
+	22, // 23: codevaldpubsub.v1.PubSubService.Unsubscribe:input_type -> codevaldpubsub.v1.UnsubscribeRequest
+	2,  // 24: codevaldpubsub.v1.PubSubService.Publish:output_type -> codevaldpubsub.v1.PublishResponse
+	0,  // 25: codevaldpubsub.v1.PubSubService.GetEvent:output_type -> codevaldpubsub.v1.Event
+	5,  // 26: codevaldpubsub.v1.PubSubService.QueryEvents:output_type -> codevaldpubsub.v1.QueryEventsResponse
+	8,  // 27: codevaldpubsub.v1.PubSubService.RegisterTopic:output_type -> codevaldpubsub.v1.RegisterTopicResponse
+	6,  // 28: codevaldpubsub.v1.PubSubService.GetTopic:output_type -> codevaldpubsub.v1.Topic
+	11, // 29: codevaldpubsub.v1.PubSubService.ListTopics:output_type -> codevaldpubsub.v1.ListTopicsResponse
+	13, // 30: codevaldpubsub.v1.PubSubService.DeleteTopic:output_type -> codevaldpubsub.v1.DeleteTopicResponse
+	16, // 31: codevaldpubsub.v1.PubSubService.Subscribe:output_type -> codevaldpubsub.v1.SubscribeResponse
+	14, // 32: codevaldpubsub.v1.PubSubService.GetSubscription:output_type -> codevaldpubsub.v1.Subscription
+	19, // 33: codevaldpubsub.v1.PubSubService.ListSubscriptions:output_type -> codevaldpubsub.v1.ListSubscriptionsResponse
+	21, // 34: codevaldpubsub.v1.PubSubService.UpdateSubscription:output_type -> codevaldpubsub.v1.UpdateSubscriptionResponse
+	23, // 35: codevaldpubsub.v1.PubSubService.Unsubscribe:output_type -> codevaldpubsub.v1.UnsubscribeResponse
+	24, // [24:36] is the sub-list for method output_type
+	12, // [12:24] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_codevaldpubsub_v1_service_proto_init() }
@@ -464,7 +1675,7 @@ func file_codevaldpubsub_v1_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_codevaldpubsub_v1_service_proto_rawDesc), len(file_codevaldpubsub_v1_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

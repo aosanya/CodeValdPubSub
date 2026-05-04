@@ -27,12 +27,11 @@ func New(mgr codevaldpubsub.Manager, agencyID string) *Server {
 	return &Server{mgr: mgr, agencyID: agencyID}
 }
 
+// ── Events ────────────────────────────────────────────────────────────────────
+
 // Publish records a new event in the agency's event log.
 func (s *Server) Publish(ctx context.Context, req *pb.PublishRequest) (*pb.PublishResponse, error) {
-	agencyID := req.AgencyId
-	if agencyID == "" {
-		agencyID = s.agencyID
-	}
+	agencyID := coalesce(req.AgencyId, s.agencyID)
 	evt, err := s.mgr.RecordEvent(ctx, agencyID, codevaldpubsub.RecordEventRequest{
 		Topic:         req.Topic,
 		Domain:        domainFromTopic(req.Topic),
@@ -50,7 +49,8 @@ func (s *Server) Publish(ctx context.Context, req *pb.PublishRequest) (*pb.Publi
 
 // GetEvent retrieves a specific event by entity ID.
 func (s *Server) GetEvent(ctx context.Context, req *pb.GetEventRequest) (*pb.Event, error) {
-	evt, err := s.mgr.GetEvent(ctx, s.agencyID, req.EventId)
+	agencyID := coalesce(req.AgencyId, s.agencyID)
+	evt, err := s.mgr.GetEvent(ctx, agencyID, req.EventId)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -59,10 +59,7 @@ func (s *Server) GetEvent(ctx context.Context, req *pb.GetEventRequest) (*pb.Eve
 
 // QueryEvents lists events matching the given filters.
 func (s *Server) QueryEvents(ctx context.Context, req *pb.QueryEventsRequest) (*pb.QueryEventsResponse, error) {
-	agencyID := req.AgencyId
-	if agencyID == "" {
-		agencyID = s.agencyID
-	}
+	agencyID := coalesce(req.AgencyId, s.agencyID)
 	evts, err := s.mgr.ListEvents(ctx, agencyID, codevaldpubsub.EventFilter{
 		Domain: domainFromTopic(req.Topic),
 		Action: actionFromTopic(req.Topic),
@@ -76,6 +73,128 @@ func (s *Server) QueryEvents(ctx context.Context, req *pb.QueryEventsRequest) (*
 		out[i] = eventToProto(e)
 	}
 	return &pb.QueryEventsResponse{Events: out}, nil
+}
+
+// ── Topics ────────────────────────────────────────────────────────────────────
+
+// RegisterTopic creates a new named topic channel.
+func (s *Server) RegisterTopic(ctx context.Context, req *pb.RegisterTopicRequest) (*pb.RegisterTopicResponse, error) {
+	agencyID := coalesce(req.AgencyId, s.agencyID)
+	topic, err := s.mgr.RegisterTopic(ctx, agencyID, codevaldpubsub.RegisterTopicRequest{
+		Pattern:       req.Pattern,
+		Domain:        req.Domain,
+		Action:        req.Action,
+		SourceService: req.SourceService,
+		Description:   req.Description,
+	})
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+	return &pb.RegisterTopicResponse{Topic: topicToProto(topic)}, nil
+}
+
+// GetTopic retrieves a topic by ID.
+func (s *Server) GetTopic(ctx context.Context, req *pb.GetTopicRequest) (*pb.Topic, error) {
+	agencyID := coalesce(req.AgencyId, s.agencyID)
+	topic, err := s.mgr.GetTopic(ctx, agencyID, req.TopicId)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+	return topicToProto(topic), nil
+}
+
+// ListTopics lists topics with optional domain/action filters.
+func (s *Server) ListTopics(ctx context.Context, req *pb.ListTopicsRequest) (*pb.ListTopicsResponse, error) {
+	agencyID := coalesce(req.AgencyId, s.agencyID)
+	topics, err := s.mgr.ListTopics(ctx, agencyID, codevaldpubsub.TopicFilter{
+		Domain: req.Domain,
+		Action: req.Action,
+		Limit:  int(req.Limit),
+	})
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+	out := make([]*pb.Topic, len(topics))
+	for i, t := range topics {
+		out[i] = topicToProto(t)
+	}
+	return &pb.ListTopicsResponse{Topics: out}, nil
+}
+
+// DeleteTopic removes a topic.
+func (s *Server) DeleteTopic(ctx context.Context, req *pb.DeleteTopicRequest) (*pb.DeleteTopicResponse, error) {
+	agencyID := coalesce(req.AgencyId, s.agencyID)
+	if err := s.mgr.DeleteTopic(ctx, agencyID, req.TopicId); err != nil {
+		return nil, toGRPCError(err)
+	}
+	return &pb.DeleteTopicResponse{}, nil
+}
+
+// ── Subscriptions ─────────────────────────────────────────────────────────────
+
+// Subscribe registers a service to receive events matching a topic pattern.
+func (s *Server) Subscribe(ctx context.Context, req *pb.SubscribeRequest) (*pb.SubscribeResponse, error) {
+	agencyID := coalesce(req.AgencyId, s.agencyID)
+	sub, err := s.mgr.Subscribe(ctx, agencyID, codevaldpubsub.SubscribeRequest{
+		SubscriberID:      req.SubscriberId,
+		SubscriberService: req.SubscriberService,
+		TopicPattern:      req.TopicPattern,
+		TopicID:           req.TopicId,
+	})
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+	return &pb.SubscribeResponse{Subscription: subscriptionToProto(sub)}, nil
+}
+
+// GetSubscription retrieves a subscription by ID.
+func (s *Server) GetSubscription(ctx context.Context, req *pb.GetSubscriptionRequest) (*pb.Subscription, error) {
+	agencyID := coalesce(req.AgencyId, s.agencyID)
+	sub, err := s.mgr.GetSubscription(ctx, agencyID, req.SubscriptionId)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+	return subscriptionToProto(sub), nil
+}
+
+// ListSubscriptions lists subscriptions with optional filters.
+func (s *Server) ListSubscriptions(ctx context.Context, req *pb.ListSubscriptionsRequest) (*pb.ListSubscriptionsResponse, error) {
+	agencyID := coalesce(req.AgencyId, s.agencyID)
+	subs, err := s.mgr.ListSubscriptions(ctx, agencyID, codevaldpubsub.SubscriptionFilter{
+		SubscriberID:      req.SubscriberId,
+		SubscriberService: req.SubscriberService,
+		Status:            req.Status,
+		Limit:             int(req.Limit),
+	})
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+	out := make([]*pb.Subscription, len(subs))
+	for i, s := range subs {
+		out[i] = subscriptionToProto(s)
+	}
+	return &pb.ListSubscriptionsResponse{Subscriptions: out}, nil
+}
+
+// UpdateSubscription patches a subscription's mutable fields.
+func (s *Server) UpdateSubscription(ctx context.Context, req *pb.UpdateSubscriptionRequest) (*pb.UpdateSubscriptionResponse, error) {
+	agencyID := coalesce(req.AgencyId, s.agencyID)
+	sub, err := s.mgr.UpdateSubscription(ctx, agencyID, req.SubscriptionId, codevaldpubsub.UpdateSubscriptionRequest{
+		Status: req.Status,
+	})
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+	return &pb.UpdateSubscriptionResponse{Subscription: subscriptionToProto(sub)}, nil
+}
+
+// Unsubscribe cancels a subscription.
+func (s *Server) Unsubscribe(ctx context.Context, req *pb.UnsubscribeRequest) (*pb.UnsubscribeResponse, error) {
+	agencyID := coalesce(req.AgencyId, s.agencyID)
+	if err := s.mgr.Unsubscribe(ctx, agencyID, req.SubscriptionId); err != nil {
+		return nil, toGRPCError(err)
+	}
+	return &pb.UnsubscribeResponse{}, nil
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -95,6 +214,41 @@ func eventToProto(e codevaldpubsub.Event) *pb.Event {
 	}
 }
 
+func topicToProto(t codevaldpubsub.Topic) *pb.Topic {
+	out := &pb.Topic{
+		Id:            t.ID,
+		Pattern:       t.Pattern,
+		Domain:        t.Domain,
+		Action:        t.Action,
+		SourceService: t.SourceService,
+		Description:   t.Description,
+	}
+	if ts, err := time.Parse(time.RFC3339, t.CreatedAt); err == nil {
+		out.CreatedAt = timestamppb.New(ts)
+	}
+	if ts, err := time.Parse(time.RFC3339, t.UpdatedAt); err == nil {
+		out.UpdatedAt = timestamppb.New(ts)
+	}
+	return out
+}
+
+func subscriptionToProto(s codevaldpubsub.Subscription) *pb.Subscription {
+	out := &pb.Subscription{
+		Id:                s.ID,
+		SubscriberId:      s.SubscriberID,
+		SubscriberService: s.SubscriberService,
+		TopicPattern:      s.TopicPattern,
+		Status:            s.Status,
+	}
+	if ts, err := time.Parse(time.RFC3339, s.CreatedAt); err == nil {
+		out.CreatedAt = timestamppb.New(ts)
+	}
+	if ts, err := time.Parse(time.RFC3339, s.UpdatedAt); err == nil {
+		out.UpdatedAt = timestamppb.New(ts)
+	}
+	return out
+}
+
 func toGRPCError(err error) error {
 	switch {
 	case errors.Is(err, codevaldpubsub.ErrTopicNotFound):
@@ -110,7 +264,6 @@ func toGRPCError(err error) error {
 	}
 }
 
-// domainFromTopic extracts the first segment of a dot-separated topic string.
 func domainFromTopic(topic string) string {
 	for i, c := range topic {
 		if c == '.' {
@@ -120,7 +273,6 @@ func domainFromTopic(topic string) string {
 	return topic
 }
 
-// actionFromTopic extracts the last segment of a dot-separated topic string.
 func actionFromTopic(topic string) string {
 	last := 0
 	for i, c := range topic {
@@ -129,4 +281,11 @@ func actionFromTopic(topic string) string {
 		}
 	}
 	return topic[last:]
+}
+
+func coalesce(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
 }

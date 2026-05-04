@@ -6,6 +6,8 @@ option go_package = "github.com/aosanya/CodeValdPubSub/gen/go/codevaldpubsub/v1;
 
 import "google/protobuf/timestamp.proto";
 
+// ── Events ────────────────────────────────────────────────────────────────────
+
 // Event is a single recorded pub/sub event.
 message Event {
   string                    id         = 1;
@@ -31,7 +33,8 @@ message PublishResponse {
 
 // GetEventRequest retrieves a specific event by its entity ID.
 message GetEventRequest {
-  string event_id = 1;
+  string agency_id = 1;
+  string event_id  = 2;
 }
 
 // QueryEventsRequest lists events matching the given filters.
@@ -47,12 +50,162 @@ message QueryEventsResponse {
   repeated Event events = 1;
 }
 
-// PubSubService records and queries pub/sub events for an agency.
+// ── Topics ────────────────────────────────────────────────────────────────────
+
+// Topic is a registered named channel that groups related Events.
+message Topic {
+  string                    id             = 1;
+  string                    pattern        = 2;
+  string                    domain         = 3;
+  string                    action         = 4;
+  string                    source_service = 5;
+  string                    description    = 6;
+  google.protobuf.Timestamp created_at     = 7;
+  google.protobuf.Timestamp updated_at     = 8;
+}
+
+// RegisterTopicRequest creates a new Topic.
+message RegisterTopicRequest {
+  string agency_id      = 1;
+  string pattern        = 2;
+  string domain         = 3;
+  string action         = 4;
+  string source_service = 5;
+  string description    = 6;
+}
+
+// RegisterTopicResponse returns the created Topic.
+message RegisterTopicResponse {
+  Topic topic = 1;
+}
+
+// GetTopicRequest retrieves a Topic by ID.
+message GetTopicRequest {
+  string agency_id = 1;
+  string topic_id  = 2;
+}
+
+// ListTopicsRequest lists Topics with optional filters.
+message ListTopicsRequest {
+  string agency_id = 1;
+  string domain    = 2;
+  string action    = 3;
+  int32  limit     = 4;
+}
+
+// ListTopicsResponse returns the matched Topics.
+message ListTopicsResponse {
+  repeated Topic topics = 1;
+}
+
+// DeleteTopicRequest deletes a Topic by ID.
+message DeleteTopicRequest {
+  string agency_id = 1;
+  string topic_id  = 2;
+}
+
+// DeleteTopicResponse is empty on success.
+message DeleteTopicResponse {}
+
+// ── Subscriptions ─────────────────────────────────────────────────────────────
+
+// Subscription represents a service's registration to receive events.
+message Subscription {
+  string                    id                 = 1;
+  string                    subscriber_id      = 2;
+  string                    subscriber_service = 3;
+  string                    topic_pattern      = 4;
+  string                    status             = 5;
+  google.protobuf.Timestamp created_at         = 6;
+  google.protobuf.Timestamp updated_at         = 7;
+}
+
+// SubscribeRequest creates a new Subscription.
+message SubscribeRequest {
+  string agency_id          = 1;
+  string subscriber_id      = 2;
+  string subscriber_service = 3;
+  string topic_pattern      = 4;
+  string topic_id           = 5;
+}
+
+// SubscribeResponse returns the created Subscription.
+message SubscribeResponse {
+  Subscription subscription = 1;
+}
+
+// GetSubscriptionRequest retrieves a Subscription by ID.
+message GetSubscriptionRequest {
+  string agency_id       = 1;
+  string subscription_id = 2;
+}
+
+// ListSubscriptionsRequest lists Subscriptions with optional filters.
+message ListSubscriptionsRequest {
+  string agency_id          = 1;
+  string subscriber_id      = 2;
+  string subscriber_service = 3;
+  string status             = 4;
+  int32  limit              = 5;
+}
+
+// ListSubscriptionsResponse returns the matched Subscriptions.
+message ListSubscriptionsResponse {
+  repeated Subscription subscriptions = 1;
+}
+
+// UpdateSubscriptionRequest patches a Subscription's mutable fields.
+message UpdateSubscriptionRequest {
+  string agency_id       = 1;
+  string subscription_id = 2;
+  string status          = 3;
+}
+
+// UpdateSubscriptionResponse returns the updated Subscription.
+message UpdateSubscriptionResponse {
+  Subscription subscription = 1;
+}
+
+// UnsubscribeRequest cancels a Subscription.
+message UnsubscribeRequest {
+  string agency_id       = 1;
+  string subscription_id = 2;
+}
+
+// UnsubscribeResponse is empty on success.
+message UnsubscribeResponse {}
+
+// ── Service ───────────────────────────────────────────────────────────────────
+
+// PubSubService manages topics, events, and subscriptions for an agency.
 service PubSubService {
+  // ── Events ──────────────────────────────────────────────────────────────────
   // Publish records a new event in the agency's event log.
   rpc Publish(PublishRequest) returns (PublishResponse);
   // GetEvent retrieves a specific recorded event by its entity ID.
   rpc GetEvent(GetEventRequest) returns (Event);
   // QueryEvents lists recorded events matching the given filters.
   rpc QueryEvents(QueryEventsRequest) returns (QueryEventsResponse);
+
+  // ── Topics ───────────────────────────────────────────────────────────────────
+  // RegisterTopic creates a new named topic channel.
+  rpc RegisterTopic(RegisterTopicRequest) returns (RegisterTopicResponse);
+  // GetTopic retrieves a topic by ID.
+  rpc GetTopic(GetTopicRequest) returns (Topic);
+  // ListTopics lists topics with optional domain/action filters.
+  rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse);
+  // DeleteTopic removes a topic.
+  rpc DeleteTopic(DeleteTopicRequest) returns (DeleteTopicResponse);
+
+  // ── Subscriptions ─────────────────────────────────────────────────────────────
+  // Subscribe registers a service to receive events matching a topic pattern.
+  rpc Subscribe(SubscribeRequest) returns (SubscribeResponse);
+  // GetSubscription retrieves a subscription by ID.
+  rpc GetSubscription(GetSubscriptionRequest) returns (Subscription);
+  // ListSubscriptions lists subscriptions with optional filters.
+  rpc ListSubscriptions(ListSubscriptionsRequest) returns (ListSubscriptionsResponse);
+  // UpdateSubscription patches a subscription's mutable fields (e.g. status).
+  rpc UpdateSubscription(UpdateSubscriptionRequest) returns (UpdateSubscriptionResponse);
+  // Unsubscribe cancels a subscription.
+  rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
 }

@@ -40,6 +40,24 @@ func DefaultPubSubSchema() types.Schema {
 					{Name: "created_at", Type: types.PropertyTypeString},
 					{Name: "updated_at", Type: types.PropertyTypeString},
 				},
+				Relationships: []types.RelationshipDefinition{
+					{
+						Name:        "has_event",
+						Label:       "Events",
+						PathSegment: "events",
+						ToType:      "Event",
+						ToMany:      true,
+						Inverse:     "for_topic",
+					},
+					{
+						Name:        "has_subscription",
+						Label:       "Subscriptions",
+						PathSegment: "subscriptions",
+						ToType:      "Subscription",
+						ToMany:      true,
+						Inverse:     "subscribes_to",
+					},
+				},
 			},
 			{
 				Name:              "Event",

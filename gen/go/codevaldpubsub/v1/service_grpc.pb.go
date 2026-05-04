@@ -19,23 +19,53 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PubSubService_Publish_FullMethodName     = "/codevaldpubsub.v1.PubSubService/Publish"
-	PubSubService_GetEvent_FullMethodName    = "/codevaldpubsub.v1.PubSubService/GetEvent"
-	PubSubService_QueryEvents_FullMethodName = "/codevaldpubsub.v1.PubSubService/QueryEvents"
+	PubSubService_Publish_FullMethodName            = "/codevaldpubsub.v1.PubSubService/Publish"
+	PubSubService_GetEvent_FullMethodName           = "/codevaldpubsub.v1.PubSubService/GetEvent"
+	PubSubService_QueryEvents_FullMethodName        = "/codevaldpubsub.v1.PubSubService/QueryEvents"
+	PubSubService_RegisterTopic_FullMethodName      = "/codevaldpubsub.v1.PubSubService/RegisterTopic"
+	PubSubService_GetTopic_FullMethodName           = "/codevaldpubsub.v1.PubSubService/GetTopic"
+	PubSubService_ListTopics_FullMethodName         = "/codevaldpubsub.v1.PubSubService/ListTopics"
+	PubSubService_DeleteTopic_FullMethodName        = "/codevaldpubsub.v1.PubSubService/DeleteTopic"
+	PubSubService_Subscribe_FullMethodName          = "/codevaldpubsub.v1.PubSubService/Subscribe"
+	PubSubService_GetSubscription_FullMethodName    = "/codevaldpubsub.v1.PubSubService/GetSubscription"
+	PubSubService_ListSubscriptions_FullMethodName  = "/codevaldpubsub.v1.PubSubService/ListSubscriptions"
+	PubSubService_UpdateSubscription_FullMethodName = "/codevaldpubsub.v1.PubSubService/UpdateSubscription"
+	PubSubService_Unsubscribe_FullMethodName        = "/codevaldpubsub.v1.PubSubService/Unsubscribe"
 )
 
 // PubSubServiceClient is the client API for PubSubService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// PubSubService records and queries pub/sub events for an agency.
+// PubSubService manages topics, events, and subscriptions for an agency.
 type PubSubServiceClient interface {
+	// ── Events ──────────────────────────────────────────────────────────────────
 	// Publish records a new event in the agency's event log.
 	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error)
 	// GetEvent retrieves a specific recorded event by its entity ID.
 	GetEvent(ctx context.Context, in *GetEventRequest, opts ...grpc.CallOption) (*Event, error)
 	// QueryEvents lists recorded events matching the given filters.
 	QueryEvents(ctx context.Context, in *QueryEventsRequest, opts ...grpc.CallOption) (*QueryEventsResponse, error)
+	// ── Topics ───────────────────────────────────────────────────────────────────
+	// RegisterTopic creates a new named topic channel.
+	RegisterTopic(ctx context.Context, in *RegisterTopicRequest, opts ...grpc.CallOption) (*RegisterTopicResponse, error)
+	// GetTopic retrieves a topic by ID.
+	GetTopic(ctx context.Context, in *GetTopicRequest, opts ...grpc.CallOption) (*Topic, error)
+	// ListTopics lists topics with optional domain/action filters.
+	ListTopics(ctx context.Context, in *ListTopicsRequest, opts ...grpc.CallOption) (*ListTopicsResponse, error)
+	// DeleteTopic removes a topic.
+	DeleteTopic(ctx context.Context, in *DeleteTopicRequest, opts ...grpc.CallOption) (*DeleteTopicResponse, error)
+	// ── Subscriptions ─────────────────────────────────────────────────────────────
+	// Subscribe registers a service to receive events matching a topic pattern.
+	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error)
+	// GetSubscription retrieves a subscription by ID.
+	GetSubscription(ctx context.Context, in *GetSubscriptionRequest, opts ...grpc.CallOption) (*Subscription, error)
+	// ListSubscriptions lists subscriptions with optional filters.
+	ListSubscriptions(ctx context.Context, in *ListSubscriptionsRequest, opts ...grpc.CallOption) (*ListSubscriptionsResponse, error)
+	// UpdateSubscription patches a subscription's mutable fields (e.g. status).
+	UpdateSubscription(ctx context.Context, in *UpdateSubscriptionRequest, opts ...grpc.CallOption) (*UpdateSubscriptionResponse, error)
+	// Unsubscribe cancels a subscription.
+	Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error)
 }
 
 type pubSubServiceClient struct {
@@ -76,18 +106,129 @@ func (c *pubSubServiceClient) QueryEvents(ctx context.Context, in *QueryEventsRe
 	return out, nil
 }
 
+func (c *pubSubServiceClient) RegisterTopic(ctx context.Context, in *RegisterTopicRequest, opts ...grpc.CallOption) (*RegisterTopicResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegisterTopicResponse)
+	err := c.cc.Invoke(ctx, PubSubService_RegisterTopic_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pubSubServiceClient) GetTopic(ctx context.Context, in *GetTopicRequest, opts ...grpc.CallOption) (*Topic, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Topic)
+	err := c.cc.Invoke(ctx, PubSubService_GetTopic_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pubSubServiceClient) ListTopics(ctx context.Context, in *ListTopicsRequest, opts ...grpc.CallOption) (*ListTopicsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTopicsResponse)
+	err := c.cc.Invoke(ctx, PubSubService_ListTopics_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pubSubServiceClient) DeleteTopic(ctx context.Context, in *DeleteTopicRequest, opts ...grpc.CallOption) (*DeleteTopicResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteTopicResponse)
+	err := c.cc.Invoke(ctx, PubSubService_DeleteTopic_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pubSubServiceClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubscribeResponse)
+	err := c.cc.Invoke(ctx, PubSubService_Subscribe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pubSubServiceClient) GetSubscription(ctx context.Context, in *GetSubscriptionRequest, opts ...grpc.CallOption) (*Subscription, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Subscription)
+	err := c.cc.Invoke(ctx, PubSubService_GetSubscription_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pubSubServiceClient) ListSubscriptions(ctx context.Context, in *ListSubscriptionsRequest, opts ...grpc.CallOption) (*ListSubscriptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSubscriptionsResponse)
+	err := c.cc.Invoke(ctx, PubSubService_ListSubscriptions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pubSubServiceClient) UpdateSubscription(ctx context.Context, in *UpdateSubscriptionRequest, opts ...grpc.CallOption) (*UpdateSubscriptionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateSubscriptionResponse)
+	err := c.cc.Invoke(ctx, PubSubService_UpdateSubscription_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pubSubServiceClient) Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnsubscribeResponse)
+	err := c.cc.Invoke(ctx, PubSubService_Unsubscribe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PubSubServiceServer is the server API for PubSubService service.
 // All implementations must embed UnimplementedPubSubServiceServer
 // for forward compatibility.
 //
-// PubSubService records and queries pub/sub events for an agency.
+// PubSubService manages topics, events, and subscriptions for an agency.
 type PubSubServiceServer interface {
+	// ── Events ──────────────────────────────────────────────────────────────────
 	// Publish records a new event in the agency's event log.
 	Publish(context.Context, *PublishRequest) (*PublishResponse, error)
 	// GetEvent retrieves a specific recorded event by its entity ID.
 	GetEvent(context.Context, *GetEventRequest) (*Event, error)
 	// QueryEvents lists recorded events matching the given filters.
 	QueryEvents(context.Context, *QueryEventsRequest) (*QueryEventsResponse, error)
+	// ── Topics ───────────────────────────────────────────────────────────────────
+	// RegisterTopic creates a new named topic channel.
+	RegisterTopic(context.Context, *RegisterTopicRequest) (*RegisterTopicResponse, error)
+	// GetTopic retrieves a topic by ID.
+	GetTopic(context.Context, *GetTopicRequest) (*Topic, error)
+	// ListTopics lists topics with optional domain/action filters.
+	ListTopics(context.Context, *ListTopicsRequest) (*ListTopicsResponse, error)
+	// DeleteTopic removes a topic.
+	DeleteTopic(context.Context, *DeleteTopicRequest) (*DeleteTopicResponse, error)
+	// ── Subscriptions ─────────────────────────────────────────────────────────────
+	// Subscribe registers a service to receive events matching a topic pattern.
+	Subscribe(context.Context, *SubscribeRequest) (*SubscribeResponse, error)
+	// GetSubscription retrieves a subscription by ID.
+	GetSubscription(context.Context, *GetSubscriptionRequest) (*Subscription, error)
+	// ListSubscriptions lists subscriptions with optional filters.
+	ListSubscriptions(context.Context, *ListSubscriptionsRequest) (*ListSubscriptionsResponse, error)
+	// UpdateSubscription patches a subscription's mutable fields (e.g. status).
+	UpdateSubscription(context.Context, *UpdateSubscriptionRequest) (*UpdateSubscriptionResponse, error)
+	// Unsubscribe cancels a subscription.
+	Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error)
 	mustEmbedUnimplementedPubSubServiceServer()
 }
 
@@ -106,6 +247,33 @@ func (UnimplementedPubSubServiceServer) GetEvent(context.Context, *GetEventReque
 }
 func (UnimplementedPubSubServiceServer) QueryEvents(context.Context, *QueryEventsRequest) (*QueryEventsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueryEvents not implemented")
+}
+func (UnimplementedPubSubServiceServer) RegisterTopic(context.Context, *RegisterTopicRequest) (*RegisterTopicResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RegisterTopic not implemented")
+}
+func (UnimplementedPubSubServiceServer) GetTopic(context.Context, *GetTopicRequest) (*Topic, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTopic not implemented")
+}
+func (UnimplementedPubSubServiceServer) ListTopics(context.Context, *ListTopicsRequest) (*ListTopicsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTopics not implemented")
+}
+func (UnimplementedPubSubServiceServer) DeleteTopic(context.Context, *DeleteTopicRequest) (*DeleteTopicResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteTopic not implemented")
+}
+func (UnimplementedPubSubServiceServer) Subscribe(context.Context, *SubscribeRequest) (*SubscribeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Subscribe not implemented")
+}
+func (UnimplementedPubSubServiceServer) GetSubscription(context.Context, *GetSubscriptionRequest) (*Subscription, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSubscription not implemented")
+}
+func (UnimplementedPubSubServiceServer) ListSubscriptions(context.Context, *ListSubscriptionsRequest) (*ListSubscriptionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSubscriptions not implemented")
+}
+func (UnimplementedPubSubServiceServer) UpdateSubscription(context.Context, *UpdateSubscriptionRequest) (*UpdateSubscriptionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateSubscription not implemented")
+}
+func (UnimplementedPubSubServiceServer) Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Unsubscribe not implemented")
 }
 func (UnimplementedPubSubServiceServer) mustEmbedUnimplementedPubSubServiceServer() {}
 func (UnimplementedPubSubServiceServer) testEmbeddedByValue()                       {}
@@ -182,6 +350,168 @@ func _PubSubService_QueryEvents_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PubSubService_RegisterTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterTopicRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PubSubServiceServer).RegisterTopic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PubSubService_RegisterTopic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PubSubServiceServer).RegisterTopic(ctx, req.(*RegisterTopicRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PubSubService_GetTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTopicRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PubSubServiceServer).GetTopic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PubSubService_GetTopic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PubSubServiceServer).GetTopic(ctx, req.(*GetTopicRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PubSubService_ListTopics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTopicsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PubSubServiceServer).ListTopics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PubSubService_ListTopics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PubSubServiceServer).ListTopics(ctx, req.(*ListTopicsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PubSubService_DeleteTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteTopicRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PubSubServiceServer).DeleteTopic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PubSubService_DeleteTopic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PubSubServiceServer).DeleteTopic(ctx, req.(*DeleteTopicRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PubSubService_Subscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubscribeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PubSubServiceServer).Subscribe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PubSubService_Subscribe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PubSubServiceServer).Subscribe(ctx, req.(*SubscribeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PubSubService_GetSubscription_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSubscriptionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PubSubServiceServer).GetSubscription(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PubSubService_GetSubscription_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PubSubServiceServer).GetSubscription(ctx, req.(*GetSubscriptionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PubSubService_ListSubscriptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSubscriptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PubSubServiceServer).ListSubscriptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PubSubService_ListSubscriptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PubSubServiceServer).ListSubscriptions(ctx, req.(*ListSubscriptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PubSubService_UpdateSubscription_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateSubscriptionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PubSubServiceServer).UpdateSubscription(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PubSubService_UpdateSubscription_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PubSubServiceServer).UpdateSubscription(ctx, req.(*UpdateSubscriptionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PubSubService_Unsubscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnsubscribeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PubSubServiceServer).Unsubscribe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PubSubService_Unsubscribe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PubSubServiceServer).Unsubscribe(ctx, req.(*UnsubscribeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PubSubService_ServiceDesc is the grpc.ServiceDesc for PubSubService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -200,6 +530,42 @@ var PubSubService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "QueryEvents",
 			Handler:    _PubSubService_QueryEvents_Handler,
+		},
+		{
+			MethodName: "RegisterTopic",
+			Handler:    _PubSubService_RegisterTopic_Handler,
+		},
+		{
+			MethodName: "GetTopic",
+			Handler:    _PubSubService_GetTopic_Handler,
+		},
+		{
+			MethodName: "ListTopics",
+			Handler:    _PubSubService_ListTopics_Handler,
+		},
+		{
+			MethodName: "DeleteTopic",
+			Handler:    _PubSubService_DeleteTopic_Handler,
+		},
+		{
+			MethodName: "Subscribe",
+			Handler:    _PubSubService_Subscribe_Handler,
+		},
+		{
+			MethodName: "GetSubscription",
+			Handler:    _PubSubService_GetSubscription_Handler,
+		},
+		{
+			MethodName: "ListSubscriptions",
+			Handler:    _PubSubService_ListSubscriptions_Handler,
+		},
+		{
+			MethodName: "UpdateSubscription",
+			Handler:    _PubSubService_UpdateSubscription_Handler,
+		},
+		{
+			MethodName: "Unsubscribe",
+			Handler:    _PubSubService_Unsubscribe_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

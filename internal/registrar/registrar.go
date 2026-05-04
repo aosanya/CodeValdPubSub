@@ -67,11 +67,26 @@ func (r *Registrar) NotifyEvent(_ context.Context, agencyID, topic, eventID stri
 	return nil
 }
 
-// pubsubRoutes returns HTTP routes CodeValdPubSub exposes via Cross.
+// pubsubRoutes returns all HTTP routes CodeValdPubSub exposes via Cross.
+// Pattern: /pubsub/{agencyId}/... — agencyId is extracted by Cross and
+// forwarded in the gRPC request body.
 func pubsubRoutes() []types.RouteInfo {
+	const svc = "/codevaldpubsub.v1.PubSubService"
 	return []types.RouteInfo{
-		{Method: "POST", Pattern: "/pubsub/events", GrpcMethod: "/codevaldpubsub.v1.PubSubService/Publish"},
-		{Method: "GET", Pattern: "/pubsub/events/{eventId}", GrpcMethod: "/codevaldpubsub.v1.PubSubService/GetEvent"},
-		{Method: "GET", Pattern: "/pubsub/events", GrpcMethod: "/codevaldpubsub.v1.PubSubService/QueryEvents"},
+		// ── Events ──────────────────────────────────────────────────────────────
+		{Method: "POST", Pattern: "/pubsub/{agencyId}/events", GrpcMethod: svc + "/Publish"},
+		{Method: "GET", Pattern: "/pubsub/{agencyId}/events/{eventId}", GrpcMethod: svc + "/GetEvent"},
+		{Method: "GET", Pattern: "/pubsub/{agencyId}/events", GrpcMethod: svc + "/QueryEvents"},
+		// ── Topics ──────────────────────────────────────────────────────────────
+		{Method: "POST", Pattern: "/pubsub/{agencyId}/topics", GrpcMethod: svc + "/RegisterTopic"},
+		{Method: "GET", Pattern: "/pubsub/{agencyId}/topics", GrpcMethod: svc + "/ListTopics"},
+		{Method: "GET", Pattern: "/pubsub/{agencyId}/topics/{topicId}", GrpcMethod: svc + "/GetTopic"},
+		{Method: "DELETE", Pattern: "/pubsub/{agencyId}/topics/{topicId}", GrpcMethod: svc + "/DeleteTopic"},
+		// ── Subscriptions ────────────────────────────────────────────────────────
+		{Method: "POST", Pattern: "/pubsub/{agencyId}/subscriptions", GrpcMethod: svc + "/Subscribe"},
+		{Method: "GET", Pattern: "/pubsub/{agencyId}/subscriptions", GrpcMethod: svc + "/ListSubscriptions"},
+		{Method: "GET", Pattern: "/pubsub/{agencyId}/subscriptions/{subscriptionId}", GrpcMethod: svc + "/GetSubscription"},
+		{Method: "PUT", Pattern: "/pubsub/{agencyId}/subscriptions/{subscriptionId}", GrpcMethod: svc + "/UpdateSubscription"},
+		{Method: "DELETE", Pattern: "/pubsub/{agencyId}/subscriptions/{subscriptionId}", GrpcMethod: svc + "/Unsubscribe"},
 	}
 }
