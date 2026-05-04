@@ -103,6 +103,7 @@ func DefaultPubSubSchema() types.Schema {
 				PathSegment:       "subscriptions",
 				EntityIDParam:     "subscriptionId",
 				StorageCollection: "pubsub_subscriptions",
+				UniqueKey:         []string{"subscriber_service", "topic_pattern"},
 				Properties: []types.PropertyDefinition{
 					{Name: "subscriber_id", Type: types.PropertyTypeString, Required: true},
 					{Name: "subscriber_service", Type: types.PropertyTypeString},

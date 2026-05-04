@@ -215,6 +215,22 @@ func (m *manager) ListEvents(ctx context.Context, agencyID string, filter EventF
 // ── Subscriptions ──────────────────────────────────────────────────────────
 
 func (m *manager) Subscribe(ctx context.Context, agencyID string, req SubscribeRequest) (Subscription, error) {
+	// Idempotent on (subscriber_service, topic_pattern): return existing if found.
+	existing, err := m.dm.ListEntities(ctx, entitygraph.EntityFilter{
+		AgencyID: agencyID,
+		TypeID:   "Subscription",
+		Properties: map[string]any{
+			"subscriber_service": req.SubscriberService,
+			"topic_pattern":      req.TopicPattern,
+		},
+	})
+	if err != nil {
+		return Subscription{}, fmt.Errorf("Subscribe: check existing: %w", err)
+	}
+	if len(existing) > 0 {
+		return subscriptionFromEntity(existing[0]), nil
+	}
+
 	now := time.Now().UTC().Format(time.RFC3339)
 	e, err := m.dm.CreateEntity(ctx, entitygraph.CreateEntityRequest{
 		AgencyID: agencyID,
@@ -232,7 +248,6 @@ func (m *manager) Subscribe(ctx context.Context, agencyID string, req SubscribeR
 		return Subscription{}, fmt.Errorf("Subscribe: create: %w", err)
 	}
 
-	// Link to Topic if TopicID is provided.
 	if req.TopicID != "" {
 		_, _ = m.dm.CreateRelationship(ctx, entitygraph.CreateRelationshipRequest{
 			AgencyID: agencyID,
@@ -315,6 +330,95 @@ func (m *manager) Unsubscribe(ctx context.Context, agencyID, subscriptionID stri
 	return nil
 }
 
+// ── Deliveries ─────────────────────────────────────────────────────────────
+
+func (m *manager) GetSubscribersForTopic(ctx context.Context, agencyID, topic string) ([]Subscription, error) {
+	entities, err := m.dm.ListEntities(ctx, entitygraph.EntityFilter{
+		AgencyID: agencyID,
+		TypeID:   "Subscription",
+		Properties: map[string]any{
+			"status":        "active",
+			"topic_pattern": topic,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("GetSubscribersForTopic: %w", err)
+	}
+	out := make([]Subscription, 0, len(entities))
+	for _, e := range entities {
+		out = append(out, subscriptionFromEntity(e))
+	}
+	return out, nil
+}
+
+func (m *manager) RecordDelivery(ctx context.Context, agencyID, subscriptionID, eventID string) (Delivery, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	e, err := m.dm.CreateEntity(ctx, entitygraph.CreateEntityRequest{
+		AgencyID: agencyID,
+		TypeID:   "Delivery",
+		Properties: map[string]any{
+			"subscription_id": subscriptionID,
+			"event_id":        eventID,
+			"status":          "pending",
+			"attempt_count":   0,
+			"created_at":      now,
+			"updated_at":      now,
+		},
+	})
+	if err != nil {
+		return Delivery{}, fmt.Errorf("RecordDelivery: %w", err)
+	}
+	return deliveryFromEntity(e), nil
+}
+
+func (m *manager) MarkDelivered(ctx context.Context, agencyID, deliveryID string) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err := m.dm.UpdateEntity(ctx, agencyID, deliveryID, entitygraph.UpdateEntityRequest{
+		Properties: map[string]any{
+			"status":           "delivered",
+			"last_attempted_at": now,
+			"updated_at":       now,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("MarkDelivered: %w", err)
+	}
+	return nil
+}
+
+func (m *manager) Ack(ctx context.Context, agencyID string, req AckRequest) error {
+	deliveries, err := m.dm.ListEntities(ctx, entitygraph.EntityFilter{
+		AgencyID: agencyID,
+		TypeID:   "Delivery",
+		Properties: map[string]any{
+			"subscription_id": req.SubscriptionID,
+			"event_id":        req.EventID,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("Ack: lookup: %w", err)
+	}
+	if len(deliveries) == 0 {
+		return ErrDeliveryNotFound
+	}
+	d := deliveryFromEntity(deliveries[0])
+	if d.Status == "acked" {
+		return nil // idempotent
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err = m.dm.UpdateEntity(ctx, agencyID, d.ID, entitygraph.UpdateEntityRequest{
+		Properties: map[string]any{
+			"status":     "acked",
+			"acked_at":   now,
+			"updated_at": now,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("Ack: update: %w", err)
+	}
+	return nil
+}
+
 // ── entity converters ──────────────────────────────────────────────────────
 
 func topicFromEntity(e entitygraph.Entity) Topic {
@@ -356,7 +460,33 @@ func subscriptionFromEntity(e entitygraph.Entity) Subscription {
 	}
 }
 
+func deliveryFromEntity(e entitygraph.Entity) Delivery {
+	return Delivery{
+		ID:              e.ID,
+		SubscriptionID:  strProp(e.Properties, "subscription_id"),
+		EventID:         strProp(e.Properties, "event_id"),
+		Status:          strProp(e.Properties, "status"),
+		AttemptCount:    intProp(e.Properties, "attempt_count"),
+		LastAttemptedAt: strProp(e.Properties, "last_attempted_at"),
+		AckedAt:         strProp(e.Properties, "acked_at"),
+		CreatedAt:       strProp(e.Properties, "created_at"),
+		UpdatedAt:       strProp(e.Properties, "updated_at"),
+	}
+}
+
 func strProp(props map[string]any, key string) string {
 	v, _ := props[key].(string)
 	return v
+}
+
+func intProp(props map[string]any, key string) int {
+	switch v := props[key].(type) {
+	case int:
+		return v
+	case int64:
+		return int(v)
+	case float64:
+		return int(v)
+	}
+	return 0
 }
