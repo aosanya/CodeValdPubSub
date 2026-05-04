@@ -3,6 +3,7 @@ package codevaldpubsub
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/aosanya/CodeValdSharedLib/entitygraph"
@@ -119,6 +120,7 @@ func (m *manager) DeleteTopic(ctx context.Context, agencyID, topicID string) err
 // ── Events ─────────────────────────────────────────────────────────────────
 
 func (m *manager) RecordEvent(ctx context.Context, agencyID string, req RecordEventRequest) (Event, error) {
+	log.Printf("codevaldpubsub: RecordEvent: agencyID=%q topic=%q source=%q", agencyID, req.Topic, req.SourceService)
 	// Verify topic pattern exists.
 	topics, err := m.dm.ListEntities(ctx, entitygraph.EntityFilter{
 		AgencyID:   agencyID,

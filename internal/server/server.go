@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	codevaldpubsub "github.com/aosanya/CodeValdPubSub"
@@ -31,6 +32,7 @@ func New(mgr codevaldpubsub.Manager, agencyID string) *Server {
 
 // Publish records a new event in the agency's event log.
 func (s *Server) Publish(ctx context.Context, req *pb.PublishRequest) (*pb.PublishResponse, error) {
+	log.Printf("codevaldpubsub: server.Publish: agencyID=%q topic=%q source=%q", req.AgencyId, req.Topic, req.Source)
 	agencyID := coalesce(req.AgencyId, s.agencyID)
 	evt, err := s.mgr.RecordEvent(ctx, agencyID, codevaldpubsub.RecordEventRequest{
 		Topic:         req.Topic,
