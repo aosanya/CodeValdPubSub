@@ -175,6 +175,42 @@ message UnsubscribeRequest {
 // UnsubscribeResponse is empty on success.
 message UnsubscribeResponse {}
 
+// ── Deliveries ────────────────────────────────────────────────────────────────
+
+// Delivery tracks the push state for a single (Subscription, Event) pair.
+message Delivery {
+  string                    id              = 1;
+  string                    subscription_id = 2;
+  string                    event_id        = 3;
+  // status is "pending" | "delivered" | "acked" | "failed".
+  string                    status          = 4;
+  int32                     attempt_count   = 5;
+  google.protobuf.Timestamp last_attempted_at = 6;
+  google.protobuf.Timestamp acked_at        = 7;
+  google.protobuf.Timestamp created_at      = 8;
+}
+
+// AckRequest identifies the (agency, subscription, event) triple to acknowledge.
+message AckRequest {
+  string agency_id       = 1;
+  string subscription_id = 2;
+  string event_id        = 3;
+}
+
+// AckResponse is empty on success.
+message AckResponse {}
+
+// GetSubscribersForTopicRequest returns active subscriptions for a topic.
+message GetSubscribersForTopicRequest {
+  string agency_id = 1;
+  string topic     = 2;
+}
+
+// GetSubscribersForTopicResponse returns the matched subscriptions.
+message GetSubscribersForTopicResponse {
+  repeated Subscription subscriptions = 1;
+}
+
 // ── Service ───────────────────────────────────────────────────────────────────
 
 // PubSubService manages topics, events, and subscriptions for an agency.
@@ -208,4 +244,12 @@ service PubSubService {
   rpc UpdateSubscription(UpdateSubscriptionRequest) returns (UpdateSubscriptionResponse);
   // Unsubscribe cancels a subscription.
   rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
+
+  // ── Deliveries ───────────────────────────────────────────────────────────────
+  // Ack records that Cross confirmed delivery for (subscriptionID, eventID).
+  // Idempotent: calling Ack on an already-acked delivery is a no-op.
+  rpc Ack(AckRequest) returns (AckResponse);
+  // GetSubscribersForTopic returns all active Subscriptions whose topic_pattern
+  // matches the given topic string exactly.
+  rpc GetSubscribersForTopic(GetSubscribersForTopicRequest) returns (GetSubscribersForTopicResponse);
 }

@@ -19,18 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PubSubService_Publish_FullMethodName            = "/codevaldpubsub.v1.PubSubService/Publish"
-	PubSubService_GetEvent_FullMethodName           = "/codevaldpubsub.v1.PubSubService/GetEvent"
-	PubSubService_QueryEvents_FullMethodName        = "/codevaldpubsub.v1.PubSubService/QueryEvents"
-	PubSubService_RegisterTopic_FullMethodName      = "/codevaldpubsub.v1.PubSubService/RegisterTopic"
-	PubSubService_GetTopic_FullMethodName           = "/codevaldpubsub.v1.PubSubService/GetTopic"
-	PubSubService_ListTopics_FullMethodName         = "/codevaldpubsub.v1.PubSubService/ListTopics"
-	PubSubService_DeleteTopic_FullMethodName        = "/codevaldpubsub.v1.PubSubService/DeleteTopic"
-	PubSubService_Subscribe_FullMethodName          = "/codevaldpubsub.v1.PubSubService/Subscribe"
-	PubSubService_GetSubscription_FullMethodName    = "/codevaldpubsub.v1.PubSubService/GetSubscription"
-	PubSubService_ListSubscriptions_FullMethodName  = "/codevaldpubsub.v1.PubSubService/ListSubscriptions"
-	PubSubService_UpdateSubscription_FullMethodName = "/codevaldpubsub.v1.PubSubService/UpdateSubscription"
-	PubSubService_Unsubscribe_FullMethodName        = "/codevaldpubsub.v1.PubSubService/Unsubscribe"
+	PubSubService_Publish_FullMethodName                = "/codevaldpubsub.v1.PubSubService/Publish"
+	PubSubService_GetEvent_FullMethodName               = "/codevaldpubsub.v1.PubSubService/GetEvent"
+	PubSubService_QueryEvents_FullMethodName            = "/codevaldpubsub.v1.PubSubService/QueryEvents"
+	PubSubService_RegisterTopic_FullMethodName          = "/codevaldpubsub.v1.PubSubService/RegisterTopic"
+	PubSubService_GetTopic_FullMethodName               = "/codevaldpubsub.v1.PubSubService/GetTopic"
+	PubSubService_ListTopics_FullMethodName             = "/codevaldpubsub.v1.PubSubService/ListTopics"
+	PubSubService_DeleteTopic_FullMethodName            = "/codevaldpubsub.v1.PubSubService/DeleteTopic"
+	PubSubService_Subscribe_FullMethodName              = "/codevaldpubsub.v1.PubSubService/Subscribe"
+	PubSubService_GetSubscription_FullMethodName        = "/codevaldpubsub.v1.PubSubService/GetSubscription"
+	PubSubService_ListSubscriptions_FullMethodName      = "/codevaldpubsub.v1.PubSubService/ListSubscriptions"
+	PubSubService_UpdateSubscription_FullMethodName     = "/codevaldpubsub.v1.PubSubService/UpdateSubscription"
+	PubSubService_Unsubscribe_FullMethodName            = "/codevaldpubsub.v1.PubSubService/Unsubscribe"
+	PubSubService_Ack_FullMethodName                    = "/codevaldpubsub.v1.PubSubService/Ack"
+	PubSubService_GetSubscribersForTopic_FullMethodName = "/codevaldpubsub.v1.PubSubService/GetSubscribersForTopic"
 )
 
 // PubSubServiceClient is the client API for PubSubService service.
@@ -66,6 +68,13 @@ type PubSubServiceClient interface {
 	UpdateSubscription(ctx context.Context, in *UpdateSubscriptionRequest, opts ...grpc.CallOption) (*UpdateSubscriptionResponse, error)
 	// Unsubscribe cancels a subscription.
 	Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error)
+	// ── Deliveries ───────────────────────────────────────────────────────────────
+	// Ack records that Cross confirmed delivery for (subscriptionID, eventID).
+	// Idempotent: calling Ack on an already-acked delivery is a no-op.
+	Ack(ctx context.Context, in *AckRequest, opts ...grpc.CallOption) (*AckResponse, error)
+	// GetSubscribersForTopic returns all active Subscriptions whose topic_pattern
+	// matches the given topic string exactly.
+	GetSubscribersForTopic(ctx context.Context, in *GetSubscribersForTopicRequest, opts ...grpc.CallOption) (*GetSubscribersForTopicResponse, error)
 }
 
 type pubSubServiceClient struct {
@@ -196,6 +205,26 @@ func (c *pubSubServiceClient) Unsubscribe(ctx context.Context, in *UnsubscribeRe
 	return out, nil
 }
 
+func (c *pubSubServiceClient) Ack(ctx context.Context, in *AckRequest, opts ...grpc.CallOption) (*AckResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AckResponse)
+	err := c.cc.Invoke(ctx, PubSubService_Ack_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pubSubServiceClient) GetSubscribersForTopic(ctx context.Context, in *GetSubscribersForTopicRequest, opts ...grpc.CallOption) (*GetSubscribersForTopicResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSubscribersForTopicResponse)
+	err := c.cc.Invoke(ctx, PubSubService_GetSubscribersForTopic_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PubSubServiceServer is the server API for PubSubService service.
 // All implementations must embed UnimplementedPubSubServiceServer
 // for forward compatibility.
@@ -229,6 +258,13 @@ type PubSubServiceServer interface {
 	UpdateSubscription(context.Context, *UpdateSubscriptionRequest) (*UpdateSubscriptionResponse, error)
 	// Unsubscribe cancels a subscription.
 	Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error)
+	// ── Deliveries ───────────────────────────────────────────────────────────────
+	// Ack records that Cross confirmed delivery for (subscriptionID, eventID).
+	// Idempotent: calling Ack on an already-acked delivery is a no-op.
+	Ack(context.Context, *AckRequest) (*AckResponse, error)
+	// GetSubscribersForTopic returns all active Subscriptions whose topic_pattern
+	// matches the given topic string exactly.
+	GetSubscribersForTopic(context.Context, *GetSubscribersForTopicRequest) (*GetSubscribersForTopicResponse, error)
 	mustEmbedUnimplementedPubSubServiceServer()
 }
 
@@ -274,6 +310,12 @@ func (UnimplementedPubSubServiceServer) UpdateSubscription(context.Context, *Upd
 }
 func (UnimplementedPubSubServiceServer) Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Unsubscribe not implemented")
+}
+func (UnimplementedPubSubServiceServer) Ack(context.Context, *AckRequest) (*AckResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Ack not implemented")
+}
+func (UnimplementedPubSubServiceServer) GetSubscribersForTopic(context.Context, *GetSubscribersForTopicRequest) (*GetSubscribersForTopicResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSubscribersForTopic not implemented")
 }
 func (UnimplementedPubSubServiceServer) mustEmbedUnimplementedPubSubServiceServer() {}
 func (UnimplementedPubSubServiceServer) testEmbeddedByValue()                       {}
@@ -512,6 +554,42 @@ func _PubSubService_Unsubscribe_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PubSubService_Ack_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PubSubServiceServer).Ack(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PubSubService_Ack_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PubSubServiceServer).Ack(ctx, req.(*AckRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PubSubService_GetSubscribersForTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSubscribersForTopicRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PubSubServiceServer).GetSubscribersForTopic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PubSubService_GetSubscribersForTopic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PubSubServiceServer).GetSubscribersForTopic(ctx, req.(*GetSubscribersForTopicRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PubSubService_ServiceDesc is the grpc.ServiceDesc for PubSubService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -566,6 +644,14 @@ var PubSubService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Unsubscribe",
 			Handler:    _PubSubService_Unsubscribe_Handler,
+		},
+		{
+			MethodName: "Ack",
+			Handler:    _PubSubService_Ack_Handler,
+		},
+		{
+			MethodName: "GetSubscribersForTopic",
+			Handler:    _PubSubService_GetSubscribersForTopic_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -1462,6 +1462,304 @@ func (*UnsubscribeResponse) Descriptor() ([]byte, []int) {
 	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{23}
 }
 
+// Delivery tracks the push state for a single (Subscription, Event) pair.
+type Delivery struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SubscriptionId string                 `protobuf:"bytes,2,opt,name=subscription_id,json=subscriptionId,proto3" json:"subscription_id,omitempty"`
+	EventId        string                 `protobuf:"bytes,3,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	// status is "pending" | "delivered" | "acked" | "failed".
+	Status          string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	AttemptCount    int32                  `protobuf:"varint,5,opt,name=attempt_count,json=attemptCount,proto3" json:"attempt_count,omitempty"`
+	LastAttemptedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_attempted_at,json=lastAttemptedAt,proto3" json:"last_attempted_at,omitempty"`
+	AckedAt         *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=acked_at,json=ackedAt,proto3" json:"acked_at,omitempty"`
+	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *Delivery) Reset() {
+	*x = Delivery{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Delivery) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Delivery) ProtoMessage() {}
+
+func (x *Delivery) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Delivery.ProtoReflect.Descriptor instead.
+func (*Delivery) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *Delivery) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Delivery) GetSubscriptionId() string {
+	if x != nil {
+		return x.SubscriptionId
+	}
+	return ""
+}
+
+func (x *Delivery) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *Delivery) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *Delivery) GetAttemptCount() int32 {
+	if x != nil {
+		return x.AttemptCount
+	}
+	return 0
+}
+
+func (x *Delivery) GetLastAttemptedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastAttemptedAt
+	}
+	return nil
+}
+
+func (x *Delivery) GetAckedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.AckedAt
+	}
+	return nil
+}
+
+func (x *Delivery) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+// AckRequest identifies the (agency, subscription, event) triple to acknowledge.
+type AckRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AgencyId       string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	SubscriptionId string                 `protobuf:"bytes,2,opt,name=subscription_id,json=subscriptionId,proto3" json:"subscription_id,omitempty"`
+	EventId        string                 `protobuf:"bytes,3,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *AckRequest) Reset() {
+	*x = AckRequest{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AckRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AckRequest) ProtoMessage() {}
+
+func (x *AckRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AckRequest.ProtoReflect.Descriptor instead.
+func (*AckRequest) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *AckRequest) GetAgencyId() string {
+	if x != nil {
+		return x.AgencyId
+	}
+	return ""
+}
+
+func (x *AckRequest) GetSubscriptionId() string {
+	if x != nil {
+		return x.SubscriptionId
+	}
+	return ""
+}
+
+func (x *AckRequest) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+// AckResponse is empty on success.
+type AckResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AckResponse) Reset() {
+	*x = AckResponse{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AckResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AckResponse) ProtoMessage() {}
+
+func (x *AckResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AckResponse.ProtoReflect.Descriptor instead.
+func (*AckResponse) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{26}
+}
+
+// GetSubscribersForTopicRequest returns active subscriptions for a topic.
+type GetSubscribersForTopicRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AgencyId      string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	Topic         string                 `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSubscribersForTopicRequest) Reset() {
+	*x = GetSubscribersForTopicRequest{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSubscribersForTopicRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSubscribersForTopicRequest) ProtoMessage() {}
+
+func (x *GetSubscribersForTopicRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSubscribersForTopicRequest.ProtoReflect.Descriptor instead.
+func (*GetSubscribersForTopicRequest) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *GetSubscribersForTopicRequest) GetAgencyId() string {
+	if x != nil {
+		return x.AgencyId
+	}
+	return ""
+}
+
+func (x *GetSubscribersForTopicRequest) GetTopic() string {
+	if x != nil {
+		return x.Topic
+	}
+	return ""
+}
+
+// GetSubscribersForTopicResponse returns the matched subscriptions.
+type GetSubscribersForTopicResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Subscriptions []*Subscription        `protobuf:"bytes,1,rep,name=subscriptions,proto3" json:"subscriptions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSubscribersForTopicResponse) Reset() {
+	*x = GetSubscribersForTopicResponse{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSubscribersForTopicResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSubscribersForTopicResponse) ProtoMessage() {}
+
+func (x *GetSubscribersForTopicResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSubscribersForTopicResponse.ProtoReflect.Descriptor instead.
+func (*GetSubscribersForTopicResponse) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *GetSubscribersForTopicResponse) GetSubscriptions() []*Subscription {
+	if x != nil {
+		return x.Subscriptions
+	}
+	return nil
+}
+
 var File_codevaldpubsub_v1_service_proto protoreflect.FileDescriptor
 
 const file_codevaldpubsub_v1_service_proto_rawDesc = "" +
@@ -1564,7 +1862,29 @@ const file_codevaldpubsub_v1_service_proto_rawDesc = "" +
 	"\x12UnsubscribeRequest\x12\x1b\n" +
 	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12'\n" +
 	"\x0fsubscription_id\x18\x02 \x01(\tR\x0esubscriptionId\"\x15\n" +
-	"\x13UnsubscribeResponse2\xe8\b\n" +
+	"\x13UnsubscribeResponse\"\xd5\x02\n" +
+	"\bDelivery\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
+	"\x0fsubscription_id\x18\x02 \x01(\tR\x0esubscriptionId\x12\x19\n" +
+	"\bevent_id\x18\x03 \x01(\tR\aeventId\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x12#\n" +
+	"\rattempt_count\x18\x05 \x01(\x05R\fattemptCount\x12F\n" +
+	"\x11last_attempted_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x0flastAttemptedAt\x125\n" +
+	"\backed_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\aackedAt\x129\n" +
+	"\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"m\n" +
+	"\n" +
+	"AckRequest\x12\x1b\n" +
+	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12'\n" +
+	"\x0fsubscription_id\x18\x02 \x01(\tR\x0esubscriptionId\x12\x19\n" +
+	"\bevent_id\x18\x03 \x01(\tR\aeventId\"\r\n" +
+	"\vAckResponse\"R\n" +
+	"\x1dGetSubscribersForTopicRequest\x12\x1b\n" +
+	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12\x14\n" +
+	"\x05topic\x18\x02 \x01(\tR\x05topic\"g\n" +
+	"\x1eGetSubscribersForTopicResponse\x12E\n" +
+	"\rsubscriptions\x18\x01 \x03(\v2\x1f.codevaldpubsub.v1.SubscriptionR\rsubscriptions2\xad\n" +
+	"\n" +
 	"\rPubSubService\x12P\n" +
 	"\aPublish\x12!.codevaldpubsub.v1.PublishRequest\x1a\".codevaldpubsub.v1.PublishResponse\x12H\n" +
 	"\bGetEvent\x12\".codevaldpubsub.v1.GetEventRequest\x1a\x18.codevaldpubsub.v1.Event\x12\\\n" +
@@ -1578,7 +1898,9 @@ const file_codevaldpubsub_v1_service_proto_rawDesc = "" +
 	"\x0fGetSubscription\x12).codevaldpubsub.v1.GetSubscriptionRequest\x1a\x1f.codevaldpubsub.v1.Subscription\x12n\n" +
 	"\x11ListSubscriptions\x12+.codevaldpubsub.v1.ListSubscriptionsRequest\x1a,.codevaldpubsub.v1.ListSubscriptionsResponse\x12q\n" +
 	"\x12UpdateSubscription\x12,.codevaldpubsub.v1.UpdateSubscriptionRequest\x1a-.codevaldpubsub.v1.UpdateSubscriptionResponse\x12\\\n" +
-	"\vUnsubscribe\x12%.codevaldpubsub.v1.UnsubscribeRequest\x1a&.codevaldpubsub.v1.UnsubscribeResponseBMZKgithub.com/aosanya/CodeValdPubSub/gen/go/codevaldpubsub/v1;codevaldpubsubv1b\x06proto3"
+	"\vUnsubscribe\x12%.codevaldpubsub.v1.UnsubscribeRequest\x1a&.codevaldpubsub.v1.UnsubscribeResponse\x12D\n" +
+	"\x03Ack\x12\x1d.codevaldpubsub.v1.AckRequest\x1a\x1e.codevaldpubsub.v1.AckResponse\x12}\n" +
+	"\x16GetSubscribersForTopic\x120.codevaldpubsub.v1.GetSubscribersForTopicRequest\x1a1.codevaldpubsub.v1.GetSubscribersForTopicResponseBMZKgithub.com/aosanya/CodeValdPubSub/gen/go/codevaldpubsub/v1;codevaldpubsubv1b\x06proto3"
 
 var (
 	file_codevaldpubsub_v1_service_proto_rawDescOnce sync.Once
@@ -1592,76 +1914,89 @@ func file_codevaldpubsub_v1_service_proto_rawDescGZIP() []byte {
 	return file_codevaldpubsub_v1_service_proto_rawDescData
 }
 
-var file_codevaldpubsub_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_codevaldpubsub_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_codevaldpubsub_v1_service_proto_goTypes = []any{
-	(*Event)(nil),                      // 0: codevaldpubsub.v1.Event
-	(*PublishRequest)(nil),             // 1: codevaldpubsub.v1.PublishRequest
-	(*PublishResponse)(nil),            // 2: codevaldpubsub.v1.PublishResponse
-	(*GetEventRequest)(nil),            // 3: codevaldpubsub.v1.GetEventRequest
-	(*QueryEventsRequest)(nil),         // 4: codevaldpubsub.v1.QueryEventsRequest
-	(*QueryEventsResponse)(nil),        // 5: codevaldpubsub.v1.QueryEventsResponse
-	(*Topic)(nil),                      // 6: codevaldpubsub.v1.Topic
-	(*RegisterTopicRequest)(nil),       // 7: codevaldpubsub.v1.RegisterTopicRequest
-	(*RegisterTopicResponse)(nil),      // 8: codevaldpubsub.v1.RegisterTopicResponse
-	(*GetTopicRequest)(nil),            // 9: codevaldpubsub.v1.GetTopicRequest
-	(*ListTopicsRequest)(nil),          // 10: codevaldpubsub.v1.ListTopicsRequest
-	(*ListTopicsResponse)(nil),         // 11: codevaldpubsub.v1.ListTopicsResponse
-	(*DeleteTopicRequest)(nil),         // 12: codevaldpubsub.v1.DeleteTopicRequest
-	(*DeleteTopicResponse)(nil),        // 13: codevaldpubsub.v1.DeleteTopicResponse
-	(*Subscription)(nil),               // 14: codevaldpubsub.v1.Subscription
-	(*SubscribeRequest)(nil),           // 15: codevaldpubsub.v1.SubscribeRequest
-	(*SubscribeResponse)(nil),          // 16: codevaldpubsub.v1.SubscribeResponse
-	(*GetSubscriptionRequest)(nil),     // 17: codevaldpubsub.v1.GetSubscriptionRequest
-	(*ListSubscriptionsRequest)(nil),   // 18: codevaldpubsub.v1.ListSubscriptionsRequest
-	(*ListSubscriptionsResponse)(nil),  // 19: codevaldpubsub.v1.ListSubscriptionsResponse
-	(*UpdateSubscriptionRequest)(nil),  // 20: codevaldpubsub.v1.UpdateSubscriptionRequest
-	(*UpdateSubscriptionResponse)(nil), // 21: codevaldpubsub.v1.UpdateSubscriptionResponse
-	(*UnsubscribeRequest)(nil),         // 22: codevaldpubsub.v1.UnsubscribeRequest
-	(*UnsubscribeResponse)(nil),        // 23: codevaldpubsub.v1.UnsubscribeResponse
-	(*timestamppb.Timestamp)(nil),      // 24: google.protobuf.Timestamp
+	(*Event)(nil),                          // 0: codevaldpubsub.v1.Event
+	(*PublishRequest)(nil),                 // 1: codevaldpubsub.v1.PublishRequest
+	(*PublishResponse)(nil),                // 2: codevaldpubsub.v1.PublishResponse
+	(*GetEventRequest)(nil),                // 3: codevaldpubsub.v1.GetEventRequest
+	(*QueryEventsRequest)(nil),             // 4: codevaldpubsub.v1.QueryEventsRequest
+	(*QueryEventsResponse)(nil),            // 5: codevaldpubsub.v1.QueryEventsResponse
+	(*Topic)(nil),                          // 6: codevaldpubsub.v1.Topic
+	(*RegisterTopicRequest)(nil),           // 7: codevaldpubsub.v1.RegisterTopicRequest
+	(*RegisterTopicResponse)(nil),          // 8: codevaldpubsub.v1.RegisterTopicResponse
+	(*GetTopicRequest)(nil),                // 9: codevaldpubsub.v1.GetTopicRequest
+	(*ListTopicsRequest)(nil),              // 10: codevaldpubsub.v1.ListTopicsRequest
+	(*ListTopicsResponse)(nil),             // 11: codevaldpubsub.v1.ListTopicsResponse
+	(*DeleteTopicRequest)(nil),             // 12: codevaldpubsub.v1.DeleteTopicRequest
+	(*DeleteTopicResponse)(nil),            // 13: codevaldpubsub.v1.DeleteTopicResponse
+	(*Subscription)(nil),                   // 14: codevaldpubsub.v1.Subscription
+	(*SubscribeRequest)(nil),               // 15: codevaldpubsub.v1.SubscribeRequest
+	(*SubscribeResponse)(nil),              // 16: codevaldpubsub.v1.SubscribeResponse
+	(*GetSubscriptionRequest)(nil),         // 17: codevaldpubsub.v1.GetSubscriptionRequest
+	(*ListSubscriptionsRequest)(nil),       // 18: codevaldpubsub.v1.ListSubscriptionsRequest
+	(*ListSubscriptionsResponse)(nil),      // 19: codevaldpubsub.v1.ListSubscriptionsResponse
+	(*UpdateSubscriptionRequest)(nil),      // 20: codevaldpubsub.v1.UpdateSubscriptionRequest
+	(*UpdateSubscriptionResponse)(nil),     // 21: codevaldpubsub.v1.UpdateSubscriptionResponse
+	(*UnsubscribeRequest)(nil),             // 22: codevaldpubsub.v1.UnsubscribeRequest
+	(*UnsubscribeResponse)(nil),            // 23: codevaldpubsub.v1.UnsubscribeResponse
+	(*Delivery)(nil),                       // 24: codevaldpubsub.v1.Delivery
+	(*AckRequest)(nil),                     // 25: codevaldpubsub.v1.AckRequest
+	(*AckResponse)(nil),                    // 26: codevaldpubsub.v1.AckResponse
+	(*GetSubscribersForTopicRequest)(nil),  // 27: codevaldpubsub.v1.GetSubscribersForTopicRequest
+	(*GetSubscribersForTopicResponse)(nil), // 28: codevaldpubsub.v1.GetSubscribersForTopicResponse
+	(*timestamppb.Timestamp)(nil),          // 29: google.protobuf.Timestamp
 }
 var file_codevaldpubsub_v1_service_proto_depIdxs = []int32{
-	24, // 0: codevaldpubsub.v1.Event.created_at:type_name -> google.protobuf.Timestamp
+	29, // 0: codevaldpubsub.v1.Event.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 1: codevaldpubsub.v1.PublishResponse.event:type_name -> codevaldpubsub.v1.Event
 	0,  // 2: codevaldpubsub.v1.QueryEventsResponse.events:type_name -> codevaldpubsub.v1.Event
-	24, // 3: codevaldpubsub.v1.Topic.created_at:type_name -> google.protobuf.Timestamp
-	24, // 4: codevaldpubsub.v1.Topic.updated_at:type_name -> google.protobuf.Timestamp
+	29, // 3: codevaldpubsub.v1.Topic.created_at:type_name -> google.protobuf.Timestamp
+	29, // 4: codevaldpubsub.v1.Topic.updated_at:type_name -> google.protobuf.Timestamp
 	6,  // 5: codevaldpubsub.v1.RegisterTopicResponse.topic:type_name -> codevaldpubsub.v1.Topic
 	6,  // 6: codevaldpubsub.v1.ListTopicsResponse.topics:type_name -> codevaldpubsub.v1.Topic
-	24, // 7: codevaldpubsub.v1.Subscription.created_at:type_name -> google.protobuf.Timestamp
-	24, // 8: codevaldpubsub.v1.Subscription.updated_at:type_name -> google.protobuf.Timestamp
+	29, // 7: codevaldpubsub.v1.Subscription.created_at:type_name -> google.protobuf.Timestamp
+	29, // 8: codevaldpubsub.v1.Subscription.updated_at:type_name -> google.protobuf.Timestamp
 	14, // 9: codevaldpubsub.v1.SubscribeResponse.subscription:type_name -> codevaldpubsub.v1.Subscription
 	14, // 10: codevaldpubsub.v1.ListSubscriptionsResponse.subscriptions:type_name -> codevaldpubsub.v1.Subscription
 	14, // 11: codevaldpubsub.v1.UpdateSubscriptionResponse.subscription:type_name -> codevaldpubsub.v1.Subscription
-	1,  // 12: codevaldpubsub.v1.PubSubService.Publish:input_type -> codevaldpubsub.v1.PublishRequest
-	3,  // 13: codevaldpubsub.v1.PubSubService.GetEvent:input_type -> codevaldpubsub.v1.GetEventRequest
-	4,  // 14: codevaldpubsub.v1.PubSubService.QueryEvents:input_type -> codevaldpubsub.v1.QueryEventsRequest
-	7,  // 15: codevaldpubsub.v1.PubSubService.RegisterTopic:input_type -> codevaldpubsub.v1.RegisterTopicRequest
-	9,  // 16: codevaldpubsub.v1.PubSubService.GetTopic:input_type -> codevaldpubsub.v1.GetTopicRequest
-	10, // 17: codevaldpubsub.v1.PubSubService.ListTopics:input_type -> codevaldpubsub.v1.ListTopicsRequest
-	12, // 18: codevaldpubsub.v1.PubSubService.DeleteTopic:input_type -> codevaldpubsub.v1.DeleteTopicRequest
-	15, // 19: codevaldpubsub.v1.PubSubService.Subscribe:input_type -> codevaldpubsub.v1.SubscribeRequest
-	17, // 20: codevaldpubsub.v1.PubSubService.GetSubscription:input_type -> codevaldpubsub.v1.GetSubscriptionRequest
-	18, // 21: codevaldpubsub.v1.PubSubService.ListSubscriptions:input_type -> codevaldpubsub.v1.ListSubscriptionsRequest
-	20, // 22: codevaldpubsub.v1.PubSubService.UpdateSubscription:input_type -> codevaldpubsub.v1.UpdateSubscriptionRequest
-	22, // 23: codevaldpubsub.v1.PubSubService.Unsubscribe:input_type -> codevaldpubsub.v1.UnsubscribeRequest
-	2,  // 24: codevaldpubsub.v1.PubSubService.Publish:output_type -> codevaldpubsub.v1.PublishResponse
-	0,  // 25: codevaldpubsub.v1.PubSubService.GetEvent:output_type -> codevaldpubsub.v1.Event
-	5,  // 26: codevaldpubsub.v1.PubSubService.QueryEvents:output_type -> codevaldpubsub.v1.QueryEventsResponse
-	8,  // 27: codevaldpubsub.v1.PubSubService.RegisterTopic:output_type -> codevaldpubsub.v1.RegisterTopicResponse
-	6,  // 28: codevaldpubsub.v1.PubSubService.GetTopic:output_type -> codevaldpubsub.v1.Topic
-	11, // 29: codevaldpubsub.v1.PubSubService.ListTopics:output_type -> codevaldpubsub.v1.ListTopicsResponse
-	13, // 30: codevaldpubsub.v1.PubSubService.DeleteTopic:output_type -> codevaldpubsub.v1.DeleteTopicResponse
-	16, // 31: codevaldpubsub.v1.PubSubService.Subscribe:output_type -> codevaldpubsub.v1.SubscribeResponse
-	14, // 32: codevaldpubsub.v1.PubSubService.GetSubscription:output_type -> codevaldpubsub.v1.Subscription
-	19, // 33: codevaldpubsub.v1.PubSubService.ListSubscriptions:output_type -> codevaldpubsub.v1.ListSubscriptionsResponse
-	21, // 34: codevaldpubsub.v1.PubSubService.UpdateSubscription:output_type -> codevaldpubsub.v1.UpdateSubscriptionResponse
-	23, // 35: codevaldpubsub.v1.PubSubService.Unsubscribe:output_type -> codevaldpubsub.v1.UnsubscribeResponse
-	24, // [24:36] is the sub-list for method output_type
-	12, // [12:24] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	29, // 12: codevaldpubsub.v1.Delivery.last_attempted_at:type_name -> google.protobuf.Timestamp
+	29, // 13: codevaldpubsub.v1.Delivery.acked_at:type_name -> google.protobuf.Timestamp
+	29, // 14: codevaldpubsub.v1.Delivery.created_at:type_name -> google.protobuf.Timestamp
+	14, // 15: codevaldpubsub.v1.GetSubscribersForTopicResponse.subscriptions:type_name -> codevaldpubsub.v1.Subscription
+	1,  // 16: codevaldpubsub.v1.PubSubService.Publish:input_type -> codevaldpubsub.v1.PublishRequest
+	3,  // 17: codevaldpubsub.v1.PubSubService.GetEvent:input_type -> codevaldpubsub.v1.GetEventRequest
+	4,  // 18: codevaldpubsub.v1.PubSubService.QueryEvents:input_type -> codevaldpubsub.v1.QueryEventsRequest
+	7,  // 19: codevaldpubsub.v1.PubSubService.RegisterTopic:input_type -> codevaldpubsub.v1.RegisterTopicRequest
+	9,  // 20: codevaldpubsub.v1.PubSubService.GetTopic:input_type -> codevaldpubsub.v1.GetTopicRequest
+	10, // 21: codevaldpubsub.v1.PubSubService.ListTopics:input_type -> codevaldpubsub.v1.ListTopicsRequest
+	12, // 22: codevaldpubsub.v1.PubSubService.DeleteTopic:input_type -> codevaldpubsub.v1.DeleteTopicRequest
+	15, // 23: codevaldpubsub.v1.PubSubService.Subscribe:input_type -> codevaldpubsub.v1.SubscribeRequest
+	17, // 24: codevaldpubsub.v1.PubSubService.GetSubscription:input_type -> codevaldpubsub.v1.GetSubscriptionRequest
+	18, // 25: codevaldpubsub.v1.PubSubService.ListSubscriptions:input_type -> codevaldpubsub.v1.ListSubscriptionsRequest
+	20, // 26: codevaldpubsub.v1.PubSubService.UpdateSubscription:input_type -> codevaldpubsub.v1.UpdateSubscriptionRequest
+	22, // 27: codevaldpubsub.v1.PubSubService.Unsubscribe:input_type -> codevaldpubsub.v1.UnsubscribeRequest
+	25, // 28: codevaldpubsub.v1.PubSubService.Ack:input_type -> codevaldpubsub.v1.AckRequest
+	27, // 29: codevaldpubsub.v1.PubSubService.GetSubscribersForTopic:input_type -> codevaldpubsub.v1.GetSubscribersForTopicRequest
+	2,  // 30: codevaldpubsub.v1.PubSubService.Publish:output_type -> codevaldpubsub.v1.PublishResponse
+	0,  // 31: codevaldpubsub.v1.PubSubService.GetEvent:output_type -> codevaldpubsub.v1.Event
+	5,  // 32: codevaldpubsub.v1.PubSubService.QueryEvents:output_type -> codevaldpubsub.v1.QueryEventsResponse
+	8,  // 33: codevaldpubsub.v1.PubSubService.RegisterTopic:output_type -> codevaldpubsub.v1.RegisterTopicResponse
+	6,  // 34: codevaldpubsub.v1.PubSubService.GetTopic:output_type -> codevaldpubsub.v1.Topic
+	11, // 35: codevaldpubsub.v1.PubSubService.ListTopics:output_type -> codevaldpubsub.v1.ListTopicsResponse
+	13, // 36: codevaldpubsub.v1.PubSubService.DeleteTopic:output_type -> codevaldpubsub.v1.DeleteTopicResponse
+	16, // 37: codevaldpubsub.v1.PubSubService.Subscribe:output_type -> codevaldpubsub.v1.SubscribeResponse
+	14, // 38: codevaldpubsub.v1.PubSubService.GetSubscription:output_type -> codevaldpubsub.v1.Subscription
+	19, // 39: codevaldpubsub.v1.PubSubService.ListSubscriptions:output_type -> codevaldpubsub.v1.ListSubscriptionsResponse
+	21, // 40: codevaldpubsub.v1.PubSubService.UpdateSubscription:output_type -> codevaldpubsub.v1.UpdateSubscriptionResponse
+	23, // 41: codevaldpubsub.v1.PubSubService.Unsubscribe:output_type -> codevaldpubsub.v1.UnsubscribeResponse
+	26, // 42: codevaldpubsub.v1.PubSubService.Ack:output_type -> codevaldpubsub.v1.AckResponse
+	28, // 43: codevaldpubsub.v1.PubSubService.GetSubscribersForTopic:output_type -> codevaldpubsub.v1.GetSubscribersForTopicResponse
+	30, // [30:44] is the sub-list for method output_type
+	16, // [16:30] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_codevaldpubsub_v1_service_proto_init() }
@@ -1675,7 +2010,7 @@ func file_codevaldpubsub_v1_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_codevaldpubsub_v1_service_proto_rawDesc), len(file_codevaldpubsub_v1_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   24,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
