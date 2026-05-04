@@ -72,11 +72,15 @@ func (r *Registrar) NotifyEvent(_ context.Context, agencyID, topic, eventID stri
 // forwarded in the gRPC request body.
 func pubsubRoutes() []types.RouteInfo {
 	const svc = "/codevaldpubsub.v1.PubSubService"
+	agencyBinding := types.PathBinding{URLParam: "agencyId", Field: "agency_id"}
 	return []types.RouteInfo{
 		// ── Events ──────────────────────────────────────────────────────────────
 		{Method: "POST", Pattern: "/pubsub/{agencyId}/events", GrpcMethod: svc + "/Publish"},
 		{Method: "GET", Pattern: "/pubsub/{agencyId}/events/{eventId}", GrpcMethod: svc + "/GetEvent"},
 		{Method: "GET", Pattern: "/pubsub/{agencyId}/events", GrpcMethod: svc + "/QueryEvents"},
+		// Alias: frontend uses /agencies/{agencyId}/events for the event feed.
+		{Method: "GET", Pattern: "/agencies/{agencyId}/events", GrpcMethod: svc + "/QueryEvents",
+			PathBindings: []types.PathBinding{agencyBinding}},
 		// ── Topics ──────────────────────────────────────────────────────────────
 		{Method: "POST", Pattern: "/pubsub/{agencyId}/topics", GrpcMethod: svc + "/RegisterTopic"},
 		{Method: "GET", Pattern: "/pubsub/{agencyId}/topics", GrpcMethod: svc + "/ListTopics"},
