@@ -199,6 +199,35 @@ func (s *Server) Unsubscribe(ctx context.Context, req *pb.UnsubscribeRequest) (*
 	return &pb.UnsubscribeResponse{}, nil
 }
 
+// ── Deliveries ────────────────────────────────────────────────────────────────
+
+// Ack records that Cross confirmed delivery for (subscriptionID, eventID).
+func (s *Server) Ack(ctx context.Context, req *pb.AckRequest) (*pb.AckResponse, error) {
+	agencyID := coalesce(req.AgencyId, s.agencyID)
+	err := s.mgr.Ack(ctx, agencyID, codevaldpubsub.AckRequest{
+		SubscriptionID: req.SubscriptionId,
+		EventID:        req.EventId,
+	})
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+	return &pb.AckResponse{}, nil
+}
+
+// GetSubscribersForTopic returns all active subscriptions matching a topic.
+func (s *Server) GetSubscribersForTopic(ctx context.Context, req *pb.GetSubscribersForTopicRequest) (*pb.GetSubscribersForTopicResponse, error) {
+	agencyID := coalesce(req.AgencyId, s.agencyID)
+	subs, err := s.mgr.GetSubscribersForTopic(ctx, agencyID, req.Topic)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+	out := make([]*pb.Subscription, len(subs))
+	for i, sub := range subs {
+		out[i] = subscriptionToProto(sub)
+	}
+	return &pb.GetSubscribersForTopicResponse{Subscriptions: out}, nil
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 func eventToProto(e codevaldpubsub.Event) *pb.Event {
@@ -260,6 +289,8 @@ func toGRPCError(err error) error {
 	case errors.Is(err, codevaldpubsub.ErrEventNotFound):
 		return status.Error(codes.NotFound, err.Error())
 	case errors.Is(err, codevaldpubsub.ErrSubscriptionNotFound):
+		return status.Error(codes.NotFound, err.Error())
+	case errors.Is(err, codevaldpubsub.ErrDeliveryNotFound):
 		return status.Error(codes.NotFound, err.Error())
 	default:
 		return status.Errorf(codes.Internal, "internal error: %v", err)

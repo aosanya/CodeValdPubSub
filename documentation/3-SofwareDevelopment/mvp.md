@@ -104,7 +104,7 @@ See: [mvp-details/query.md](mvp-details/query.md)
 | ~~PUBSUB-005a~~: Add `Delivery` entity to `schema.go`; add `Delivery`, `AckRequest` types to `models.go` | ✅ Done | PUBSUB-001 |
 | ~~PUBSUB-005b~~: Add `Ack`, `GetSubscribersForTopic`, `RecordDelivery`, `MarkDelivered` to `Manager` interface and `manager_impl.go` | ✅ Done | PUBSUB-005a |
 | ~~PUBSUB-005c~~: Extend `RecordEvent` to write `Delivery("pending")` records for each matching subscription | ✅ Done | PUBSUB-005b |
-| PUBSUB-005d: Add `Ack` and `GetSubscribersForTopic` RPCs to proto + server | 📋 Not Started | PUBSUB-005b |
+| PUBSUB-005d: Add `Ack` and `GetSubscribersForTopic` RPCs to proto + server | 🚀 In Progress | PUBSUB-005b |
 
 **Key design**: Cross (not PubSub) performs the push to consumer services.
 PubSub's role is to store delivery records and expose `GetSubscribersForTopic`
