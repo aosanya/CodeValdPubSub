@@ -16,17 +16,19 @@ type manager struct {
 	dm  entitygraph.DataManager
 	pub CrossPublisher
 
-	mu             sync.RWMutex
-	topicHashByKey map[string]string // "agencyID:sourceService" → produces_hash
+	mu                sync.RWMutex
+	topicHashByKey    map[string]string // "agencyID:sourceService" → produces_hash
+	subscribeKeysSeen map[string]bool   // "agencyID:subscriberService:topicPattern" → subscribed
 }
 
 // NewManager constructs a Manager backed by dm.
 // pub may be nil — Cross forwarding is then skipped.
 func NewManager(dm entitygraph.DataManager, pub CrossPublisher) Manager {
 	return &manager{
-		dm:             dm,
-		pub:            pub,
-		topicHashByKey: make(map[string]string),
+		dm:                dm,
+		pub:               pub,
+		topicHashByKey:    make(map[string]string),
+		subscribeKeysSeen: make(map[string]bool),
 	}
 }
 
@@ -263,7 +265,34 @@ func (m *manager) ListEvents(ctx context.Context, agencyID string, filter EventF
 // ── Subscriptions ──────────────────────────────────────────────────────────
 
 func (m *manager) Subscribe(ctx context.Context, agencyID string, req SubscribeRequest) (Subscription, error) {
-	// Idempotent on (subscriber_service, topic_pattern): return existing if found.
+	// Idempotent on (subscriber_service, topic_pattern) using the same in-memory
+	// cache strategy as RegisterTopics: after the first successful subscribe we
+	// skip the DB entirely on repeat heartbeat calls.
+	key := agencyID + ":" + req.SubscriberService + ":" + req.TopicPattern
+
+	m.mu.RLock()
+	seen := m.subscribeKeysSeen[key]
+	m.mu.RUnlock()
+
+	if seen {
+		existing, err := m.dm.ListEntities(ctx, entitygraph.EntityFilter{
+			AgencyID: agencyID,
+			TypeID:   "Subscription",
+			Properties: map[string]any{
+				"subscriber_service": req.SubscriberService,
+				"topic_pattern":      req.TopicPattern,
+			},
+		})
+		if err == nil && len(existing) > 0 {
+			return subscriptionFromEntity(existing[0]), nil
+		}
+		// Entity was deleted — evict and fall through to re-create.
+		m.mu.Lock()
+		delete(m.subscribeKeysSeen, key)
+		m.mu.Unlock()
+	}
+
+	// Slow path: first time seeing this key in this process lifetime.
 	existing, err := m.dm.ListEntities(ctx, entitygraph.EntityFilter{
 		AgencyID: agencyID,
 		TypeID:   "Subscription",
@@ -276,6 +305,9 @@ func (m *manager) Subscribe(ctx context.Context, agencyID string, req SubscribeR
 		return Subscription{}, fmt.Errorf("Subscribe: check existing: %w", err)
 	}
 	if len(existing) > 0 {
+		m.mu.Lock()
+		m.subscribeKeysSeen[key] = true
+		m.mu.Unlock()
 		return subscriptionFromEntity(existing[0]), nil
 	}
 
@@ -295,6 +327,10 @@ func (m *manager) Subscribe(ctx context.Context, agencyID string, req SubscribeR
 	if err != nil {
 		return Subscription{}, fmt.Errorf("Subscribe: create: %w", err)
 	}
+
+	m.mu.Lock()
+	m.subscribeKeysSeen[key] = true
+	m.mu.Unlock()
 
 	if req.TopicID != "" {
 		_, _ = m.dm.CreateRelationship(ctx, entitygraph.CreateRelationshipRequest{
