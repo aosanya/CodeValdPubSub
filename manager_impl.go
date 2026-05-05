@@ -2,8 +2,10 @@ package codevaldpubsub
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/aosanya/CodeValdSharedLib/entitygraph"
@@ -13,12 +15,19 @@ import (
 type manager struct {
 	dm  entitygraph.DataManager
 	pub CrossPublisher
+
+	mu             sync.RWMutex
+	topicHashByKey map[string]string // "agencyID:sourceService" → produces_hash
 }
 
 // NewManager constructs a Manager backed by dm.
 // pub may be nil — Cross forwarding is then skipped.
 func NewManager(dm entitygraph.DataManager, pub CrossPublisher) Manager {
-	return &manager{dm: dm, pub: pub}
+	return &manager{
+		dm:             dm,
+		pub:            pub,
+		topicHashByKey: make(map[string]string),
+	}
 }
 
 // ── Topics ─────────────────────────────────────────────────────────────────
@@ -56,6 +65,34 @@ func (m *manager) RegisterTopic(ctx context.Context, agencyID string, req Regist
 		_ = m.pub.NotifyEvent(ctx, agencyID, TopicTopicRegistered, e.ID)
 	}
 	return topicFromEntity(e), nil
+}
+
+func (m *manager) RegisterTopics(ctx context.Context, agencyID, sourceService, producesHash string, topics []RegisterTopicRequest) error {
+	key := agencyID + ":" + sourceService
+	m.mu.RLock()
+	cached := m.topicHashByKey[key]
+	m.mu.RUnlock()
+	if cached == producesHash {
+		return nil
+	}
+	for _, req := range topics {
+		if err := m.upsertTopic(ctx, agencyID, req); err != nil {
+			return fmt.Errorf("RegisterTopics: upsert %q: %w", req.Pattern, err)
+		}
+	}
+	m.mu.Lock()
+	m.topicHashByKey[key] = producesHash
+	m.mu.Unlock()
+	log.Printf("codevaldpubsub: RegisterTopics: upserted %d topics for %s agency=%s", len(topics), sourceService, agencyID)
+	return nil
+}
+
+func (m *manager) upsertTopic(ctx context.Context, agencyID string, req RegisterTopicRequest) error {
+	_, err := m.RegisterTopic(ctx, agencyID, req)
+	if errors.Is(err, ErrTopicAlreadyRegistered) {
+		return nil
+	}
+	return err
 }
 
 func (m *manager) GetTopic(ctx context.Context, agencyID, topicID string) (Topic, error) {

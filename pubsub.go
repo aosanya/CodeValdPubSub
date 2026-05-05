@@ -8,6 +8,10 @@ import "context"
 type Manager interface {
 	// Topics
 	RegisterTopic(ctx context.Context, agencyID string, req RegisterTopicRequest) (Topic, error)
+	// RegisterTopics upserts the full topic set for a producer service. It is
+	// idempotent on producesHash: if PubSub already processed this exact hash
+	// for (agencyID, sourceService) no DB writes occur.
+	RegisterTopics(ctx context.Context, agencyID, sourceService, producesHash string, topics []RegisterTopicRequest) error
 	GetTopic(ctx context.Context, agencyID, topicID string) (Topic, error)
 	GetTopicByPattern(ctx context.Context, agencyID, pattern string) (Topic, error)
 	ListTopics(ctx context.Context, agencyID string, filter TopicFilter) ([]Topic, error)

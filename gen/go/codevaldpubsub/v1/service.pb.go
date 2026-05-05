@@ -876,6 +876,116 @@ func (*DeleteTopicResponse) Descriptor() ([]byte, []int) {
 	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{13}
 }
 
+// RegisterTopicsRequest carries a producer's full topic list and a content hash.
+// PubSub uses the hash to skip DB upserts when the topic set has not changed
+// since the last registration for this (agency_id, source_service) pair.
+type RegisterTopicsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AgencyId      string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	SourceService string                 `protobuf:"bytes,2,opt,name=source_service,json=sourceService,proto3" json:"source_service,omitempty"`
+	// produces_hash is SHA-256(sorted patterns joined by "\n"), hex-encoded.
+	// If PubSub already holds this hash the call is a no-op — no DB writes occur.
+	ProducesHash  string   `protobuf:"bytes,3,opt,name=produces_hash,json=producesHash,proto3" json:"produces_hash,omitempty"`
+	Patterns      []string `protobuf:"bytes,4,rep,name=patterns,proto3" json:"patterns,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterTopicsRequest) Reset() {
+	*x = RegisterTopicsRequest{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterTopicsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterTopicsRequest) ProtoMessage() {}
+
+func (x *RegisterTopicsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterTopicsRequest.ProtoReflect.Descriptor instead.
+func (*RegisterTopicsRequest) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *RegisterTopicsRequest) GetAgencyId() string {
+	if x != nil {
+		return x.AgencyId
+	}
+	return ""
+}
+
+func (x *RegisterTopicsRequest) GetSourceService() string {
+	if x != nil {
+		return x.SourceService
+	}
+	return ""
+}
+
+func (x *RegisterTopicsRequest) GetProducesHash() string {
+	if x != nil {
+		return x.ProducesHash
+	}
+	return ""
+}
+
+func (x *RegisterTopicsRequest) GetPatterns() []string {
+	if x != nil {
+		return x.Patterns
+	}
+	return nil
+}
+
+// RegisterTopicsResponse is empty on success.
+type RegisterTopicsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterTopicsResponse) Reset() {
+	*x = RegisterTopicsResponse{}
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterTopicsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterTopicsResponse) ProtoMessage() {}
+
+func (x *RegisterTopicsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterTopicsResponse.ProtoReflect.Descriptor instead.
+func (*RegisterTopicsResponse) Descriptor() ([]byte, []int) {
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{15}
+}
+
 // Subscription represents a service's registration to receive events.
 type Subscription struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
@@ -892,7 +1002,7 @@ type Subscription struct {
 
 func (x *Subscription) Reset() {
 	*x = Subscription{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[14]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -904,7 +1014,7 @@ func (x *Subscription) String() string {
 func (*Subscription) ProtoMessage() {}
 
 func (x *Subscription) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[14]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -917,7 +1027,7 @@ func (x *Subscription) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Subscription.ProtoReflect.Descriptor instead.
 func (*Subscription) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{14}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Subscription) GetId() string {
@@ -983,7 +1093,7 @@ type SubscribeRequest struct {
 
 func (x *SubscribeRequest) Reset() {
 	*x = SubscribeRequest{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[15]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -995,7 +1105,7 @@ func (x *SubscribeRequest) String() string {
 func (*SubscribeRequest) ProtoMessage() {}
 
 func (x *SubscribeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[15]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1008,7 +1118,7 @@ func (x *SubscribeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeRequest) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{15}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SubscribeRequest) GetAgencyId() string {
@@ -1056,7 +1166,7 @@ type SubscribeResponse struct {
 
 func (x *SubscribeResponse) Reset() {
 	*x = SubscribeResponse{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[16]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1068,7 +1178,7 @@ func (x *SubscribeResponse) String() string {
 func (*SubscribeResponse) ProtoMessage() {}
 
 func (x *SubscribeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[16]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1081,7 +1191,7 @@ func (x *SubscribeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeResponse.ProtoReflect.Descriptor instead.
 func (*SubscribeResponse) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{16}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *SubscribeResponse) GetSubscription() *Subscription {
@@ -1102,7 +1212,7 @@ type GetSubscriptionRequest struct {
 
 func (x *GetSubscriptionRequest) Reset() {
 	*x = GetSubscriptionRequest{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[17]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1114,7 +1224,7 @@ func (x *GetSubscriptionRequest) String() string {
 func (*GetSubscriptionRequest) ProtoMessage() {}
 
 func (x *GetSubscriptionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[17]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1127,7 +1237,7 @@ func (x *GetSubscriptionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSubscriptionRequest.ProtoReflect.Descriptor instead.
 func (*GetSubscriptionRequest) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{17}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetSubscriptionRequest) GetAgencyId() string {
@@ -1158,7 +1268,7 @@ type ListSubscriptionsRequest struct {
 
 func (x *ListSubscriptionsRequest) Reset() {
 	*x = ListSubscriptionsRequest{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[18]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1170,7 +1280,7 @@ func (x *ListSubscriptionsRequest) String() string {
 func (*ListSubscriptionsRequest) ProtoMessage() {}
 
 func (x *ListSubscriptionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[18]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1183,7 +1293,7 @@ func (x *ListSubscriptionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSubscriptionsRequest.ProtoReflect.Descriptor instead.
 func (*ListSubscriptionsRequest) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{18}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListSubscriptionsRequest) GetAgencyId() string {
@@ -1231,7 +1341,7 @@ type ListSubscriptionsResponse struct {
 
 func (x *ListSubscriptionsResponse) Reset() {
 	*x = ListSubscriptionsResponse{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[19]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1243,7 +1353,7 @@ func (x *ListSubscriptionsResponse) String() string {
 func (*ListSubscriptionsResponse) ProtoMessage() {}
 
 func (x *ListSubscriptionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[19]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1256,7 +1366,7 @@ func (x *ListSubscriptionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSubscriptionsResponse.ProtoReflect.Descriptor instead.
 func (*ListSubscriptionsResponse) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{19}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListSubscriptionsResponse) GetSubscriptions() []*Subscription {
@@ -1278,7 +1388,7 @@ type UpdateSubscriptionRequest struct {
 
 func (x *UpdateSubscriptionRequest) Reset() {
 	*x = UpdateSubscriptionRequest{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[20]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1290,7 +1400,7 @@ func (x *UpdateSubscriptionRequest) String() string {
 func (*UpdateSubscriptionRequest) ProtoMessage() {}
 
 func (x *UpdateSubscriptionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[20]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1303,7 +1413,7 @@ func (x *UpdateSubscriptionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSubscriptionRequest.ProtoReflect.Descriptor instead.
 func (*UpdateSubscriptionRequest) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{20}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *UpdateSubscriptionRequest) GetAgencyId() string {
@@ -1337,7 +1447,7 @@ type UpdateSubscriptionResponse struct {
 
 func (x *UpdateSubscriptionResponse) Reset() {
 	*x = UpdateSubscriptionResponse{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[21]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1349,7 +1459,7 @@ func (x *UpdateSubscriptionResponse) String() string {
 func (*UpdateSubscriptionResponse) ProtoMessage() {}
 
 func (x *UpdateSubscriptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[21]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1362,7 +1472,7 @@ func (x *UpdateSubscriptionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSubscriptionResponse.ProtoReflect.Descriptor instead.
 func (*UpdateSubscriptionResponse) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{21}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *UpdateSubscriptionResponse) GetSubscription() *Subscription {
@@ -1383,7 +1493,7 @@ type UnsubscribeRequest struct {
 
 func (x *UnsubscribeRequest) Reset() {
 	*x = UnsubscribeRequest{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[22]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1395,7 +1505,7 @@ func (x *UnsubscribeRequest) String() string {
 func (*UnsubscribeRequest) ProtoMessage() {}
 
 func (x *UnsubscribeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[22]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1408,7 +1518,7 @@ func (x *UnsubscribeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsubscribeRequest.ProtoReflect.Descriptor instead.
 func (*UnsubscribeRequest) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{22}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *UnsubscribeRequest) GetAgencyId() string {
@@ -1434,7 +1544,7 @@ type UnsubscribeResponse struct {
 
 func (x *UnsubscribeResponse) Reset() {
 	*x = UnsubscribeResponse{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[23]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1446,7 +1556,7 @@ func (x *UnsubscribeResponse) String() string {
 func (*UnsubscribeResponse) ProtoMessage() {}
 
 func (x *UnsubscribeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[23]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1459,7 +1569,7 @@ func (x *UnsubscribeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsubscribeResponse.ProtoReflect.Descriptor instead.
 func (*UnsubscribeResponse) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{23}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{25}
 }
 
 // Delivery tracks the push state for a single (Subscription, Event) pair.
@@ -1480,7 +1590,7 @@ type Delivery struct {
 
 func (x *Delivery) Reset() {
 	*x = Delivery{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[24]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1492,7 +1602,7 @@ func (x *Delivery) String() string {
 func (*Delivery) ProtoMessage() {}
 
 func (x *Delivery) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[24]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1505,7 +1615,7 @@ func (x *Delivery) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Delivery.ProtoReflect.Descriptor instead.
 func (*Delivery) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{24}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *Delivery) GetId() string {
@@ -1576,7 +1686,7 @@ type AckRequest struct {
 
 func (x *AckRequest) Reset() {
 	*x = AckRequest{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[25]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1588,7 +1698,7 @@ func (x *AckRequest) String() string {
 func (*AckRequest) ProtoMessage() {}
 
 func (x *AckRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[25]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1601,7 +1711,7 @@ func (x *AckRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AckRequest.ProtoReflect.Descriptor instead.
 func (*AckRequest) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{25}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *AckRequest) GetAgencyId() string {
@@ -1634,7 +1744,7 @@ type AckResponse struct {
 
 func (x *AckResponse) Reset() {
 	*x = AckResponse{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[26]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1646,7 +1756,7 @@ func (x *AckResponse) String() string {
 func (*AckResponse) ProtoMessage() {}
 
 func (x *AckResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[26]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1659,7 +1769,7 @@ func (x *AckResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AckResponse.ProtoReflect.Descriptor instead.
 func (*AckResponse) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{26}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{28}
 }
 
 // GetSubscribersForTopicRequest returns active subscriptions for a topic.
@@ -1673,7 +1783,7 @@ type GetSubscribersForTopicRequest struct {
 
 func (x *GetSubscribersForTopicRequest) Reset() {
 	*x = GetSubscribersForTopicRequest{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[27]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1685,7 +1795,7 @@ func (x *GetSubscribersForTopicRequest) String() string {
 func (*GetSubscribersForTopicRequest) ProtoMessage() {}
 
 func (x *GetSubscribersForTopicRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[27]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1698,7 +1808,7 @@ func (x *GetSubscribersForTopicRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSubscribersForTopicRequest.ProtoReflect.Descriptor instead.
 func (*GetSubscribersForTopicRequest) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{27}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetSubscribersForTopicRequest) GetAgencyId() string {
@@ -1725,7 +1835,7 @@ type GetSubscribersForTopicResponse struct {
 
 func (x *GetSubscribersForTopicResponse) Reset() {
 	*x = GetSubscribersForTopicResponse{}
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[28]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1737,7 +1847,7 @@ func (x *GetSubscribersForTopicResponse) String() string {
 func (*GetSubscribersForTopicResponse) ProtoMessage() {}
 
 func (x *GetSubscribersForTopicResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[28]
+	mi := &file_codevaldpubsub_v1_service_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1750,7 +1860,7 @@ func (x *GetSubscribersForTopicResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSubscribersForTopicResponse.ProtoReflect.Descriptor instead.
 func (*GetSubscribersForTopicResponse) Descriptor() ([]byte, []int) {
-	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{28}
+	return file_codevaldpubsub_v1_service_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetSubscribersForTopicResponse) GetSubscriptions() []*Subscription {
@@ -1823,7 +1933,13 @@ const file_codevaldpubsub_v1_service_proto_rawDesc = "" +
 	"\x12DeleteTopicRequest\x12\x1b\n" +
 	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12\x19\n" +
 	"\btopic_id\x18\x02 \x01(\tR\atopicId\"\x15\n" +
-	"\x13DeleteTopicResponse\"\xa5\x02\n" +
+	"\x13DeleteTopicResponse\"\x9c\x01\n" +
+	"\x15RegisterTopicsRequest\x12\x1b\n" +
+	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12%\n" +
+	"\x0esource_service\x18\x02 \x01(\tR\rsourceService\x12#\n" +
+	"\rproduces_hash\x18\x03 \x01(\tR\fproducesHash\x12\x1a\n" +
+	"\bpatterns\x18\x04 \x03(\tR\bpatterns\"\x18\n" +
+	"\x16RegisterTopicsResponse\"\xa5\x02\n" +
 	"\fSubscription\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12#\n" +
 	"\rsubscriber_id\x18\x02 \x01(\tR\fsubscriberId\x12-\n" +
@@ -1883,13 +1999,13 @@ const file_codevaldpubsub_v1_service_proto_rawDesc = "" +
 	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12\x14\n" +
 	"\x05topic\x18\x02 \x01(\tR\x05topic\"g\n" +
 	"\x1eGetSubscribersForTopicResponse\x12E\n" +
-	"\rsubscriptions\x18\x01 \x03(\v2\x1f.codevaldpubsub.v1.SubscriptionR\rsubscriptions2\xad\n" +
-	"\n" +
+	"\rsubscriptions\x18\x01 \x03(\v2\x1f.codevaldpubsub.v1.SubscriptionR\rsubscriptions2\x94\v\n" +
 	"\rPubSubService\x12P\n" +
 	"\aPublish\x12!.codevaldpubsub.v1.PublishRequest\x1a\".codevaldpubsub.v1.PublishResponse\x12H\n" +
 	"\bGetEvent\x12\".codevaldpubsub.v1.GetEventRequest\x1a\x18.codevaldpubsub.v1.Event\x12\\\n" +
 	"\vQueryEvents\x12%.codevaldpubsub.v1.QueryEventsRequest\x1a&.codevaldpubsub.v1.QueryEventsResponse\x12b\n" +
-	"\rRegisterTopic\x12'.codevaldpubsub.v1.RegisterTopicRequest\x1a(.codevaldpubsub.v1.RegisterTopicResponse\x12H\n" +
+	"\rRegisterTopic\x12'.codevaldpubsub.v1.RegisterTopicRequest\x1a(.codevaldpubsub.v1.RegisterTopicResponse\x12e\n" +
+	"\x0eRegisterTopics\x12(.codevaldpubsub.v1.RegisterTopicsRequest\x1a).codevaldpubsub.v1.RegisterTopicsResponse\x12H\n" +
 	"\bGetTopic\x12\".codevaldpubsub.v1.GetTopicRequest\x1a\x18.codevaldpubsub.v1.Topic\x12Y\n" +
 	"\n" +
 	"ListTopics\x12$.codevaldpubsub.v1.ListTopicsRequest\x1a%.codevaldpubsub.v1.ListTopicsResponse\x12\\\n" +
@@ -1914,7 +2030,7 @@ func file_codevaldpubsub_v1_service_proto_rawDescGZIP() []byte {
 	return file_codevaldpubsub_v1_service_proto_rawDescData
 }
 
-var file_codevaldpubsub_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_codevaldpubsub_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_codevaldpubsub_v1_service_proto_goTypes = []any{
 	(*Event)(nil),                          // 0: codevaldpubsub.v1.Event
 	(*PublishRequest)(nil),                 // 1: codevaldpubsub.v1.PublishRequest
@@ -1930,70 +2046,74 @@ var file_codevaldpubsub_v1_service_proto_goTypes = []any{
 	(*ListTopicsResponse)(nil),             // 11: codevaldpubsub.v1.ListTopicsResponse
 	(*DeleteTopicRequest)(nil),             // 12: codevaldpubsub.v1.DeleteTopicRequest
 	(*DeleteTopicResponse)(nil),            // 13: codevaldpubsub.v1.DeleteTopicResponse
-	(*Subscription)(nil),                   // 14: codevaldpubsub.v1.Subscription
-	(*SubscribeRequest)(nil),               // 15: codevaldpubsub.v1.SubscribeRequest
-	(*SubscribeResponse)(nil),              // 16: codevaldpubsub.v1.SubscribeResponse
-	(*GetSubscriptionRequest)(nil),         // 17: codevaldpubsub.v1.GetSubscriptionRequest
-	(*ListSubscriptionsRequest)(nil),       // 18: codevaldpubsub.v1.ListSubscriptionsRequest
-	(*ListSubscriptionsResponse)(nil),      // 19: codevaldpubsub.v1.ListSubscriptionsResponse
-	(*UpdateSubscriptionRequest)(nil),      // 20: codevaldpubsub.v1.UpdateSubscriptionRequest
-	(*UpdateSubscriptionResponse)(nil),     // 21: codevaldpubsub.v1.UpdateSubscriptionResponse
-	(*UnsubscribeRequest)(nil),             // 22: codevaldpubsub.v1.UnsubscribeRequest
-	(*UnsubscribeResponse)(nil),            // 23: codevaldpubsub.v1.UnsubscribeResponse
-	(*Delivery)(nil),                       // 24: codevaldpubsub.v1.Delivery
-	(*AckRequest)(nil),                     // 25: codevaldpubsub.v1.AckRequest
-	(*AckResponse)(nil),                    // 26: codevaldpubsub.v1.AckResponse
-	(*GetSubscribersForTopicRequest)(nil),  // 27: codevaldpubsub.v1.GetSubscribersForTopicRequest
-	(*GetSubscribersForTopicResponse)(nil), // 28: codevaldpubsub.v1.GetSubscribersForTopicResponse
-	(*timestamppb.Timestamp)(nil),          // 29: google.protobuf.Timestamp
+	(*RegisterTopicsRequest)(nil),          // 14: codevaldpubsub.v1.RegisterTopicsRequest
+	(*RegisterTopicsResponse)(nil),         // 15: codevaldpubsub.v1.RegisterTopicsResponse
+	(*Subscription)(nil),                   // 16: codevaldpubsub.v1.Subscription
+	(*SubscribeRequest)(nil),               // 17: codevaldpubsub.v1.SubscribeRequest
+	(*SubscribeResponse)(nil),              // 18: codevaldpubsub.v1.SubscribeResponse
+	(*GetSubscriptionRequest)(nil),         // 19: codevaldpubsub.v1.GetSubscriptionRequest
+	(*ListSubscriptionsRequest)(nil),       // 20: codevaldpubsub.v1.ListSubscriptionsRequest
+	(*ListSubscriptionsResponse)(nil),      // 21: codevaldpubsub.v1.ListSubscriptionsResponse
+	(*UpdateSubscriptionRequest)(nil),      // 22: codevaldpubsub.v1.UpdateSubscriptionRequest
+	(*UpdateSubscriptionResponse)(nil),     // 23: codevaldpubsub.v1.UpdateSubscriptionResponse
+	(*UnsubscribeRequest)(nil),             // 24: codevaldpubsub.v1.UnsubscribeRequest
+	(*UnsubscribeResponse)(nil),            // 25: codevaldpubsub.v1.UnsubscribeResponse
+	(*Delivery)(nil),                       // 26: codevaldpubsub.v1.Delivery
+	(*AckRequest)(nil),                     // 27: codevaldpubsub.v1.AckRequest
+	(*AckResponse)(nil),                    // 28: codevaldpubsub.v1.AckResponse
+	(*GetSubscribersForTopicRequest)(nil),  // 29: codevaldpubsub.v1.GetSubscribersForTopicRequest
+	(*GetSubscribersForTopicResponse)(nil), // 30: codevaldpubsub.v1.GetSubscribersForTopicResponse
+	(*timestamppb.Timestamp)(nil),          // 31: google.protobuf.Timestamp
 }
 var file_codevaldpubsub_v1_service_proto_depIdxs = []int32{
-	29, // 0: codevaldpubsub.v1.Event.created_at:type_name -> google.protobuf.Timestamp
+	31, // 0: codevaldpubsub.v1.Event.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 1: codevaldpubsub.v1.PublishResponse.event:type_name -> codevaldpubsub.v1.Event
 	0,  // 2: codevaldpubsub.v1.QueryEventsResponse.events:type_name -> codevaldpubsub.v1.Event
-	29, // 3: codevaldpubsub.v1.Topic.created_at:type_name -> google.protobuf.Timestamp
-	29, // 4: codevaldpubsub.v1.Topic.updated_at:type_name -> google.protobuf.Timestamp
+	31, // 3: codevaldpubsub.v1.Topic.created_at:type_name -> google.protobuf.Timestamp
+	31, // 4: codevaldpubsub.v1.Topic.updated_at:type_name -> google.protobuf.Timestamp
 	6,  // 5: codevaldpubsub.v1.RegisterTopicResponse.topic:type_name -> codevaldpubsub.v1.Topic
 	6,  // 6: codevaldpubsub.v1.ListTopicsResponse.topics:type_name -> codevaldpubsub.v1.Topic
-	29, // 7: codevaldpubsub.v1.Subscription.created_at:type_name -> google.protobuf.Timestamp
-	29, // 8: codevaldpubsub.v1.Subscription.updated_at:type_name -> google.protobuf.Timestamp
-	14, // 9: codevaldpubsub.v1.SubscribeResponse.subscription:type_name -> codevaldpubsub.v1.Subscription
-	14, // 10: codevaldpubsub.v1.ListSubscriptionsResponse.subscriptions:type_name -> codevaldpubsub.v1.Subscription
-	14, // 11: codevaldpubsub.v1.UpdateSubscriptionResponse.subscription:type_name -> codevaldpubsub.v1.Subscription
-	29, // 12: codevaldpubsub.v1.Delivery.last_attempted_at:type_name -> google.protobuf.Timestamp
-	29, // 13: codevaldpubsub.v1.Delivery.acked_at:type_name -> google.protobuf.Timestamp
-	29, // 14: codevaldpubsub.v1.Delivery.created_at:type_name -> google.protobuf.Timestamp
-	14, // 15: codevaldpubsub.v1.GetSubscribersForTopicResponse.subscriptions:type_name -> codevaldpubsub.v1.Subscription
+	31, // 7: codevaldpubsub.v1.Subscription.created_at:type_name -> google.protobuf.Timestamp
+	31, // 8: codevaldpubsub.v1.Subscription.updated_at:type_name -> google.protobuf.Timestamp
+	16, // 9: codevaldpubsub.v1.SubscribeResponse.subscription:type_name -> codevaldpubsub.v1.Subscription
+	16, // 10: codevaldpubsub.v1.ListSubscriptionsResponse.subscriptions:type_name -> codevaldpubsub.v1.Subscription
+	16, // 11: codevaldpubsub.v1.UpdateSubscriptionResponse.subscription:type_name -> codevaldpubsub.v1.Subscription
+	31, // 12: codevaldpubsub.v1.Delivery.last_attempted_at:type_name -> google.protobuf.Timestamp
+	31, // 13: codevaldpubsub.v1.Delivery.acked_at:type_name -> google.protobuf.Timestamp
+	31, // 14: codevaldpubsub.v1.Delivery.created_at:type_name -> google.protobuf.Timestamp
+	16, // 15: codevaldpubsub.v1.GetSubscribersForTopicResponse.subscriptions:type_name -> codevaldpubsub.v1.Subscription
 	1,  // 16: codevaldpubsub.v1.PubSubService.Publish:input_type -> codevaldpubsub.v1.PublishRequest
 	3,  // 17: codevaldpubsub.v1.PubSubService.GetEvent:input_type -> codevaldpubsub.v1.GetEventRequest
 	4,  // 18: codevaldpubsub.v1.PubSubService.QueryEvents:input_type -> codevaldpubsub.v1.QueryEventsRequest
 	7,  // 19: codevaldpubsub.v1.PubSubService.RegisterTopic:input_type -> codevaldpubsub.v1.RegisterTopicRequest
-	9,  // 20: codevaldpubsub.v1.PubSubService.GetTopic:input_type -> codevaldpubsub.v1.GetTopicRequest
-	10, // 21: codevaldpubsub.v1.PubSubService.ListTopics:input_type -> codevaldpubsub.v1.ListTopicsRequest
-	12, // 22: codevaldpubsub.v1.PubSubService.DeleteTopic:input_type -> codevaldpubsub.v1.DeleteTopicRequest
-	15, // 23: codevaldpubsub.v1.PubSubService.Subscribe:input_type -> codevaldpubsub.v1.SubscribeRequest
-	17, // 24: codevaldpubsub.v1.PubSubService.GetSubscription:input_type -> codevaldpubsub.v1.GetSubscriptionRequest
-	18, // 25: codevaldpubsub.v1.PubSubService.ListSubscriptions:input_type -> codevaldpubsub.v1.ListSubscriptionsRequest
-	20, // 26: codevaldpubsub.v1.PubSubService.UpdateSubscription:input_type -> codevaldpubsub.v1.UpdateSubscriptionRequest
-	22, // 27: codevaldpubsub.v1.PubSubService.Unsubscribe:input_type -> codevaldpubsub.v1.UnsubscribeRequest
-	25, // 28: codevaldpubsub.v1.PubSubService.Ack:input_type -> codevaldpubsub.v1.AckRequest
-	27, // 29: codevaldpubsub.v1.PubSubService.GetSubscribersForTopic:input_type -> codevaldpubsub.v1.GetSubscribersForTopicRequest
-	2,  // 30: codevaldpubsub.v1.PubSubService.Publish:output_type -> codevaldpubsub.v1.PublishResponse
-	0,  // 31: codevaldpubsub.v1.PubSubService.GetEvent:output_type -> codevaldpubsub.v1.Event
-	5,  // 32: codevaldpubsub.v1.PubSubService.QueryEvents:output_type -> codevaldpubsub.v1.QueryEventsResponse
-	8,  // 33: codevaldpubsub.v1.PubSubService.RegisterTopic:output_type -> codevaldpubsub.v1.RegisterTopicResponse
-	6,  // 34: codevaldpubsub.v1.PubSubService.GetTopic:output_type -> codevaldpubsub.v1.Topic
-	11, // 35: codevaldpubsub.v1.PubSubService.ListTopics:output_type -> codevaldpubsub.v1.ListTopicsResponse
-	13, // 36: codevaldpubsub.v1.PubSubService.DeleteTopic:output_type -> codevaldpubsub.v1.DeleteTopicResponse
-	16, // 37: codevaldpubsub.v1.PubSubService.Subscribe:output_type -> codevaldpubsub.v1.SubscribeResponse
-	14, // 38: codevaldpubsub.v1.PubSubService.GetSubscription:output_type -> codevaldpubsub.v1.Subscription
-	19, // 39: codevaldpubsub.v1.PubSubService.ListSubscriptions:output_type -> codevaldpubsub.v1.ListSubscriptionsResponse
-	21, // 40: codevaldpubsub.v1.PubSubService.UpdateSubscription:output_type -> codevaldpubsub.v1.UpdateSubscriptionResponse
-	23, // 41: codevaldpubsub.v1.PubSubService.Unsubscribe:output_type -> codevaldpubsub.v1.UnsubscribeResponse
-	26, // 42: codevaldpubsub.v1.PubSubService.Ack:output_type -> codevaldpubsub.v1.AckResponse
-	28, // 43: codevaldpubsub.v1.PubSubService.GetSubscribersForTopic:output_type -> codevaldpubsub.v1.GetSubscribersForTopicResponse
-	30, // [30:44] is the sub-list for method output_type
-	16, // [16:30] is the sub-list for method input_type
+	14, // 20: codevaldpubsub.v1.PubSubService.RegisterTopics:input_type -> codevaldpubsub.v1.RegisterTopicsRequest
+	9,  // 21: codevaldpubsub.v1.PubSubService.GetTopic:input_type -> codevaldpubsub.v1.GetTopicRequest
+	10, // 22: codevaldpubsub.v1.PubSubService.ListTopics:input_type -> codevaldpubsub.v1.ListTopicsRequest
+	12, // 23: codevaldpubsub.v1.PubSubService.DeleteTopic:input_type -> codevaldpubsub.v1.DeleteTopicRequest
+	17, // 24: codevaldpubsub.v1.PubSubService.Subscribe:input_type -> codevaldpubsub.v1.SubscribeRequest
+	19, // 25: codevaldpubsub.v1.PubSubService.GetSubscription:input_type -> codevaldpubsub.v1.GetSubscriptionRequest
+	20, // 26: codevaldpubsub.v1.PubSubService.ListSubscriptions:input_type -> codevaldpubsub.v1.ListSubscriptionsRequest
+	22, // 27: codevaldpubsub.v1.PubSubService.UpdateSubscription:input_type -> codevaldpubsub.v1.UpdateSubscriptionRequest
+	24, // 28: codevaldpubsub.v1.PubSubService.Unsubscribe:input_type -> codevaldpubsub.v1.UnsubscribeRequest
+	27, // 29: codevaldpubsub.v1.PubSubService.Ack:input_type -> codevaldpubsub.v1.AckRequest
+	29, // 30: codevaldpubsub.v1.PubSubService.GetSubscribersForTopic:input_type -> codevaldpubsub.v1.GetSubscribersForTopicRequest
+	2,  // 31: codevaldpubsub.v1.PubSubService.Publish:output_type -> codevaldpubsub.v1.PublishResponse
+	0,  // 32: codevaldpubsub.v1.PubSubService.GetEvent:output_type -> codevaldpubsub.v1.Event
+	5,  // 33: codevaldpubsub.v1.PubSubService.QueryEvents:output_type -> codevaldpubsub.v1.QueryEventsResponse
+	8,  // 34: codevaldpubsub.v1.PubSubService.RegisterTopic:output_type -> codevaldpubsub.v1.RegisterTopicResponse
+	15, // 35: codevaldpubsub.v1.PubSubService.RegisterTopics:output_type -> codevaldpubsub.v1.RegisterTopicsResponse
+	6,  // 36: codevaldpubsub.v1.PubSubService.GetTopic:output_type -> codevaldpubsub.v1.Topic
+	11, // 37: codevaldpubsub.v1.PubSubService.ListTopics:output_type -> codevaldpubsub.v1.ListTopicsResponse
+	13, // 38: codevaldpubsub.v1.PubSubService.DeleteTopic:output_type -> codevaldpubsub.v1.DeleteTopicResponse
+	18, // 39: codevaldpubsub.v1.PubSubService.Subscribe:output_type -> codevaldpubsub.v1.SubscribeResponse
+	16, // 40: codevaldpubsub.v1.PubSubService.GetSubscription:output_type -> codevaldpubsub.v1.Subscription
+	21, // 41: codevaldpubsub.v1.PubSubService.ListSubscriptions:output_type -> codevaldpubsub.v1.ListSubscriptionsResponse
+	23, // 42: codevaldpubsub.v1.PubSubService.UpdateSubscription:output_type -> codevaldpubsub.v1.UpdateSubscriptionResponse
+	25, // 43: codevaldpubsub.v1.PubSubService.Unsubscribe:output_type -> codevaldpubsub.v1.UnsubscribeResponse
+	28, // 44: codevaldpubsub.v1.PubSubService.Ack:output_type -> codevaldpubsub.v1.AckResponse
+	30, // 45: codevaldpubsub.v1.PubSubService.GetSubscribersForTopic:output_type -> codevaldpubsub.v1.GetSubscribersForTopicResponse
+	31, // [31:46] is the sub-list for method output_type
+	16, // [16:31] is the sub-list for method input_type
 	16, // [16:16] is the sub-list for extension type_name
 	16, // [16:16] is the sub-list for extension extendee
 	0,  // [0:16] is the sub-list for field type_name
@@ -2010,7 +2130,7 @@ func file_codevaldpubsub_v1_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_codevaldpubsub_v1_service_proto_rawDesc), len(file_codevaldpubsub_v1_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   29,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

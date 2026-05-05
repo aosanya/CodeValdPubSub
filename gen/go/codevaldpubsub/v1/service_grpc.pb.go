@@ -23,6 +23,7 @@ const (
 	PubSubService_GetEvent_FullMethodName               = "/codevaldpubsub.v1.PubSubService/GetEvent"
 	PubSubService_QueryEvents_FullMethodName            = "/codevaldpubsub.v1.PubSubService/QueryEvents"
 	PubSubService_RegisterTopic_FullMethodName          = "/codevaldpubsub.v1.PubSubService/RegisterTopic"
+	PubSubService_RegisterTopics_FullMethodName         = "/codevaldpubsub.v1.PubSubService/RegisterTopics"
 	PubSubService_GetTopic_FullMethodName               = "/codevaldpubsub.v1.PubSubService/GetTopic"
 	PubSubService_ListTopics_FullMethodName             = "/codevaldpubsub.v1.PubSubService/ListTopics"
 	PubSubService_DeleteTopic_FullMethodName            = "/codevaldpubsub.v1.PubSubService/DeleteTopic"
@@ -51,6 +52,12 @@ type PubSubServiceClient interface {
 	// ── Topics ───────────────────────────────────────────────────────────────────
 	// RegisterTopic creates a new named topic channel.
 	RegisterTopic(ctx context.Context, in *RegisterTopicRequest, opts ...grpc.CallOption) (*RegisterTopicResponse, error)
+	// RegisterTopics upserts the full topic set for a producer service.
+	// Idempotent on produces_hash: if PubSub already processed this exact hash
+	// for (agency_id, source_service) no DB writes occur. Called by Cross on
+	// every service heartbeat; the hash ensures only the first call per unique
+	// topic-set hits the database.
+	RegisterTopics(ctx context.Context, in *RegisterTopicsRequest, opts ...grpc.CallOption) (*RegisterTopicsResponse, error)
 	// GetTopic retrieves a topic by ID.
 	GetTopic(ctx context.Context, in *GetTopicRequest, opts ...grpc.CallOption) (*Topic, error)
 	// ListTopics lists topics with optional domain/action filters.
@@ -119,6 +126,16 @@ func (c *pubSubServiceClient) RegisterTopic(ctx context.Context, in *RegisterTop
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RegisterTopicResponse)
 	err := c.cc.Invoke(ctx, PubSubService_RegisterTopic_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pubSubServiceClient) RegisterTopics(ctx context.Context, in *RegisterTopicsRequest, opts ...grpc.CallOption) (*RegisterTopicsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegisterTopicsResponse)
+	err := c.cc.Invoke(ctx, PubSubService_RegisterTopics_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -241,6 +258,12 @@ type PubSubServiceServer interface {
 	// ── Topics ───────────────────────────────────────────────────────────────────
 	// RegisterTopic creates a new named topic channel.
 	RegisterTopic(context.Context, *RegisterTopicRequest) (*RegisterTopicResponse, error)
+	// RegisterTopics upserts the full topic set for a producer service.
+	// Idempotent on produces_hash: if PubSub already processed this exact hash
+	// for (agency_id, source_service) no DB writes occur. Called by Cross on
+	// every service heartbeat; the hash ensures only the first call per unique
+	// topic-set hits the database.
+	RegisterTopics(context.Context, *RegisterTopicsRequest) (*RegisterTopicsResponse, error)
 	// GetTopic retrieves a topic by ID.
 	GetTopic(context.Context, *GetTopicRequest) (*Topic, error)
 	// ListTopics lists topics with optional domain/action filters.
@@ -286,6 +309,9 @@ func (UnimplementedPubSubServiceServer) QueryEvents(context.Context, *QueryEvent
 }
 func (UnimplementedPubSubServiceServer) RegisterTopic(context.Context, *RegisterTopicRequest) (*RegisterTopicResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RegisterTopic not implemented")
+}
+func (UnimplementedPubSubServiceServer) RegisterTopics(context.Context, *RegisterTopicsRequest) (*RegisterTopicsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RegisterTopics not implemented")
 }
 func (UnimplementedPubSubServiceServer) GetTopic(context.Context, *GetTopicRequest) (*Topic, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetTopic not implemented")
@@ -406,6 +432,24 @@ func _PubSubService_RegisterTopic_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PubSubServiceServer).RegisterTopic(ctx, req.(*RegisterTopicRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PubSubService_RegisterTopics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterTopicsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PubSubServiceServer).RegisterTopics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PubSubService_RegisterTopics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PubSubServiceServer).RegisterTopics(ctx, req.(*RegisterTopicsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -612,6 +656,10 @@ var PubSubService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RegisterTopic",
 			Handler:    _PubSubService_RegisterTopic_Handler,
+		},
+		{
+			MethodName: "RegisterTopics",
+			Handler:    _PubSubService_RegisterTopics_Handler,
 		},
 		{
 			MethodName: "GetTopic",

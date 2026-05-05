@@ -107,6 +107,21 @@ message DeleteTopicRequest {
 // DeleteTopicResponse is empty on success.
 message DeleteTopicResponse {}
 
+// RegisterTopicsRequest carries a producer's full topic list and a content hash.
+// PubSub uses the hash to skip DB upserts when the topic set has not changed
+// since the last registration for this (agency_id, source_service) pair.
+message RegisterTopicsRequest {
+  string          agency_id      = 1;
+  string          source_service = 2;
+  // produces_hash is SHA-256(sorted patterns joined by "\n"), hex-encoded.
+  // If PubSub already holds this hash the call is a no-op — no DB writes occur.
+  string          produces_hash  = 3;
+  repeated string patterns       = 4;
+}
+
+// RegisterTopicsResponse is empty on success.
+message RegisterTopicsResponse {}
+
 // ── Subscriptions ─────────────────────────────────────────────────────────────
 
 // Subscription represents a service's registration to receive events.
@@ -226,6 +241,12 @@ service PubSubService {
   // ── Topics ───────────────────────────────────────────────────────────────────
   // RegisterTopic creates a new named topic channel.
   rpc RegisterTopic(RegisterTopicRequest) returns (RegisterTopicResponse);
+  // RegisterTopics upserts the full topic set for a producer service.
+  // Idempotent on produces_hash: if PubSub already processed this exact hash
+  // for (agency_id, source_service) no DB writes occur. Called by Cross on
+  // every service heartbeat; the hash ensures only the first call per unique
+  // topic-set hits the database.
+  rpc RegisterTopics(RegisterTopicsRequest) returns (RegisterTopicsResponse);
   // GetTopic retrieves a topic by ID.
   rpc GetTopic(GetTopicRequest) returns (Topic);
   // ListTopics lists topics with optional domain/action filters.

@@ -95,6 +95,25 @@ func (s *Server) RegisterTopic(ctx context.Context, req *pb.RegisterTopicRequest
 	return &pb.RegisterTopicResponse{Topic: topicToProto(topic)}, nil
 }
 
+// RegisterTopics upserts the full topic set for a producer service.
+// Idempotent on produces_hash — no DB writes if hash matches cached value.
+func (s *Server) RegisterTopics(ctx context.Context, req *pb.RegisterTopicsRequest) (*pb.RegisterTopicsResponse, error) {
+	agencyID := coalesce(req.AgencyId, s.agencyID)
+	topics := make([]codevaldpubsub.RegisterTopicRequest, 0, len(req.Patterns))
+	for _, pattern := range req.Patterns {
+		topics = append(topics, codevaldpubsub.RegisterTopicRequest{
+			Pattern:       pattern,
+			Domain:        domainFromTopic(pattern),
+			Action:        actionFromTopic(pattern),
+			SourceService: req.SourceService,
+		})
+	}
+	if err := s.mgr.RegisterTopics(ctx, agencyID, req.SourceService, req.ProducesHash, topics); err != nil {
+		return nil, toGRPCError(err)
+	}
+	return &pb.RegisterTopicsResponse{}, nil
+}
+
 // GetTopic retrieves a topic by ID.
 func (s *Server) GetTopic(ctx context.Context, req *pb.GetTopicRequest) (*pb.Topic, error) {
 	agencyID := coalesce(req.AgencyId, s.agencyID)
