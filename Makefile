@@ -1,4 +1,4 @@
-.PHONY: build build-server build-dev server dev dev-restart kill proto test cover test-arango test-all vet lint clean
+.PHONY: build build-server build-dev server dev dev-restart kill proto test cover test-arango test-all vet lint clean reset-db
 
 export PATH := /usr/local/go/bin:$(PATH)
 
@@ -95,3 +95,35 @@ clean:
 	go clean ./...
 	rm -rf bin/
 	rm -f coverage.out coverage.html
+
+# ── Dev DB ────────────────────────────────────────────────────────────────────
+
+## Truncate all pubsub ArangoDB collections (dev reset).
+## Loads .env if present; honours PUBSUB_ARANGO_* env vars.
+## Usage: make reset-db
+##        PUBSUB_ARANGO_DATABASE=mydb make reset-db
+reset-db:
+	@if [ -f .env ]; then \
+		set -a && . ./.env && set +a; \
+	fi; \
+	ENDPOINT=$${PUBSUB_ARANGO_ENDPOINT:-http://localhost:8529}; \
+	USER=$${PUBSUB_ARANGO_USER:-root}; \
+	PASS=$${PUBSUB_ARANGO_PASSWORD:-}; \
+	DB=$${PUBSUB_ARANGO_DATABASE:-codevaldpubsub}; \
+	echo "Resetting pubsub collections in '$$DB' at $$ENDPOINT ..."; \
+	for col in \
+		pubsub_entities \
+		pubsub_relationships \
+		pubsub_schemas_draft \
+		pubsub_schemas_published \
+		pubsub_messages; do \
+		STATUS=$$(curl -s -o /dev/null -w "%{http_code}" \
+			-u "$$USER:$$PASS" \
+			-X PUT "$$ENDPOINT/_db/$$DB/_api/collection/$$col/truncate"); \
+		case "$$STATUS" in \
+			200) echo "  [ok]   $$col" ;; \
+			404) echo "  [skip] $$col (collection not found)" ;; \
+			*)   echo "  [FAIL] $$col (HTTP $$STATUS)" ;; \
+		esac; \
+	done; \
+	echo "Done."
