@@ -116,7 +116,11 @@ reset-db:
 		pubsub_relationships \
 		pubsub_schemas_draft \
 		pubsub_schemas_published \
-		pubsub_messages; do \
+		pubsub_messages \
+		pubsub_events \
+		pubsub_topics \
+		pubsub_subscriptions \
+		pubsub_deliveries; do \
 		STATUS=$$(curl -s -o /dev/null -w "%{http_code}" \
 			-u "$$USER:$$PASS" \
 			-X PUT "$$ENDPOINT/_db/$$DB/_api/collection/$$col/truncate"); \
