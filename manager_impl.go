@@ -160,7 +160,11 @@ func (m *manager) DeleteTopic(ctx context.Context, agencyID, topicID string) err
 
 func (m *manager) RecordEvent(ctx context.Context, agencyID string, req RecordEventRequest) (Event, error) {
 	log.Printf("codevaldpubsub: RecordEvent: agencyID=%q topic=%q source=%q", agencyID, req.Topic, req.SourceService)
-	// Verify topic pattern exists.
+	// Resolve the topic, lazy-registering on first publish. This makes the
+	// pipeline resilient to the Cross→PubSub topic propagation gap (services
+	// register producer lists with Cross; that list isn't yet forwarded to
+	// PubSub on every heartbeat). Without this, every first publish for a
+	// freshly-imported agency fails NotFound until the propagation lands.
 	topics, err := m.dm.ListEntities(ctx, entitygraph.EntityFilter{
 		AgencyID:   agencyID,
 		TypeID:     "Topic",
@@ -170,7 +174,26 @@ func (m *manager) RecordEvent(ctx context.Context, agencyID string, req RecordEv
 		return Event{}, fmt.Errorf("RecordEvent: resolve topic: %w", err)
 	}
 	if len(topics) == 0 {
-		return Event{}, ErrTopicNotFound
+		log.Printf("codevaldpubsub: RecordEvent: auto-registering missing topic %q for agency %q", req.Topic, agencyID)
+		if _, rerr := m.RegisterTopic(ctx, agencyID, RegisterTopicRequest{
+			Pattern:       req.Topic,
+			Domain:        req.Domain,
+			Action:        req.Action,
+			SourceService: req.SourceService,
+		}); rerr != nil {
+			return Event{}, fmt.Errorf("RecordEvent: auto-register topic %q: %w", req.Topic, rerr)
+		}
+		topics, err = m.dm.ListEntities(ctx, entitygraph.EntityFilter{
+			AgencyID:   agencyID,
+			TypeID:     "Topic",
+			Properties: map[string]any{"pattern": req.Topic},
+		})
+		if err != nil {
+			return Event{}, fmt.Errorf("RecordEvent: re-resolve topic after auto-register: %w", err)
+		}
+		if len(topics) == 0 {
+			return Event{}, ErrTopicNotFound
+		}
 	}
 
 	publishedAt := req.PublishedAt
@@ -254,7 +277,11 @@ func (m *manager) ListEvents(ctx context.Context, agencyID string, filter EventF
 	}
 	out := make([]Event, 0, len(entities))
 	for _, e := range entities {
-		out = append(out, eventFromEntity(e))
+		ev := eventFromEntity(e)
+		if filter.AfterTimestamp != "" && ev.CreatedAt < filter.AfterTimestamp {
+			continue
+		}
+		out = append(out, ev)
 		if filter.Limit > 0 && len(out) >= filter.Limit {
 			break
 		}

@@ -63,9 +63,10 @@ func (s *Server) GetEvent(ctx context.Context, req *pb.GetEventRequest) (*pb.Eve
 func (s *Server) QueryEvents(ctx context.Context, req *pb.QueryEventsRequest) (*pb.QueryEventsResponse, error) {
 	agencyID := coalesce(req.AgencyId, s.agencyID)
 	evts, err := s.mgr.ListEvents(ctx, agencyID, codevaldpubsub.EventFilter{
-		Domain: domainFromTopic(req.Topic),
-		Action: actionFromTopic(req.Topic),
-		Limit:  int(req.Limit),
+		Domain:         domainFromTopic(req.Topic),
+		Action:         actionFromTopic(req.Topic),
+		Limit:          int(req.Limit),
+		AfterTimestamp: req.AfterTimestamp,
 	})
 	if err != nil {
 		return nil, toGRPCError(err)

@@ -43,6 +43,11 @@ message QueryEventsRequest {
   string topic     = 2;
   string source    = 3;
   int32  limit     = 4;
+  // after_timestamp filters to events whose created_at is >= this RFC3339
+  // string. Empty means no lower bound. Server-side post-fetch filter:
+  // entitygraph supports only equality filters, so this is applied after
+  // ListEntities returns.
+  string after_timestamp = 5;
 }
 
 // QueryEventsResponse returns the matched events.

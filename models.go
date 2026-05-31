@@ -63,6 +63,10 @@ type EventFilter struct {
 	AgencyID string
 	Action   string
 	Limit    int
+	// AfterTimestamp filters to events whose CreatedAt is >= this RFC3339
+	// string. Empty means no lower bound. Applied post-fetch since the
+	// entitygraph store only supports equality filters.
+	AfterTimestamp string
 }
 
 // ── Subscriptions ─────────────────────────────────────────────────────────────

@@ -276,13 +276,18 @@ func (x *GetEventRequest) GetEventId() string {
 
 // QueryEventsRequest lists events matching the given filters.
 type QueryEventsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AgencyId      string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
-	Topic         string                 `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
-	Source        string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
-	Limit         int32                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	AgencyId string                 `protobuf:"bytes,1,opt,name=agency_id,json=agencyId,proto3" json:"agency_id,omitempty"`
+	Topic    string                 `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
+	Source   string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
+	Limit    int32                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	// after_timestamp filters to events whose created_at is >= this RFC3339
+	// string. Empty means no lower bound. Server-side post-fetch filter:
+	// entitygraph supports only equality filters, so this is applied after
+	// ListEntities returns.
+	AfterTimestamp string `protobuf:"bytes,5,opt,name=after_timestamp,json=afterTimestamp,proto3" json:"after_timestamp,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *QueryEventsRequest) Reset() {
@@ -341,6 +346,13 @@ func (x *QueryEventsRequest) GetLimit() int32 {
 		return x.Limit
 	}
 	return 0
+}
+
+func (x *QueryEventsRequest) GetAfterTimestamp() string {
+	if x != nil {
+		return x.AfterTimestamp
+	}
+	return ""
 }
 
 // QueryEventsResponse returns the matched events.
@@ -1892,12 +1904,13 @@ const file_codevaldpubsub_v1_service_proto_rawDesc = "" +
 	"\x05event\x18\x01 \x01(\v2\x18.codevaldpubsub.v1.EventR\x05event\"I\n" +
 	"\x0fGetEventRequest\x12\x1b\n" +
 	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12\x19\n" +
-	"\bevent_id\x18\x02 \x01(\tR\aeventId\"u\n" +
+	"\bevent_id\x18\x02 \x01(\tR\aeventId\"\x9e\x01\n" +
 	"\x12QueryEventsRequest\x12\x1b\n" +
 	"\tagency_id\x18\x01 \x01(\tR\bagencyId\x12\x14\n" +
 	"\x05topic\x18\x02 \x01(\tR\x05topic\x12\x16\n" +
 	"\x06source\x18\x03 \x01(\tR\x06source\x12\x14\n" +
-	"\x05limit\x18\x04 \x01(\x05R\x05limit\"G\n" +
+	"\x05limit\x18\x04 \x01(\x05R\x05limit\x12'\n" +
+	"\x0fafter_timestamp\x18\x05 \x01(\tR\x0eafterTimestamp\"G\n" +
 	"\x13QueryEventsResponse\x120\n" +
 	"\x06events\x18\x01 \x03(\v2\x18.codevaldpubsub.v1.EventR\x06events\"\xa0\x02\n" +
 	"\x05Topic\x12\x0e\n" +
