@@ -66,7 +66,7 @@ func (s *Server) QueryEvents(ctx context.Context, req *pb.QueryEventsRequest) (*
 		Domain:         domainFromTopic(req.Topic),
 		Action:         actionFromTopic(req.Topic),
 		Limit:          int(req.Limit),
-		AfterTimestamp: req.AfterTimestamp,
+		AfterTimestamp: req.After,
 	})
 	if err != nil {
 		return nil, toGRPCError(err)
