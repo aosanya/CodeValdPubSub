@@ -1,6 +1,9 @@
 # BUG-20260610-001 — `GET /pubsub/{agency}/events?after=…` drops every event because stored events have no `timestamp` field
 
-**Status:** 📋 Open
+**Status:** ✅ Fixed (2026-06-10) — `manager.ListEvents` filter prefers `PublishedAt` and falls back to `CreatedAt`; rows with neither timestamp are surfaced instead of silently dropped. `eventToProto` falls back to `CreatedAt` when `PublishedAt` is missing/unparseable so the response always carries a populated timestamp when storage has one. Unit tests cover all three branches.
+
+**Residual (separate Cross bug):** the user-facing `?after=...` query key is rejected by Cross's proxy because `protojson.Unmarshal` returns "unknown field after" — the proto field is `after_timestamp`. `jq '.events | length'` on the resulting error envelope evaluates `null | length == 0`, which is how the empty-events symptom presents to QA. The Cross-side proxy needs to normalize URL query keys to canonical proto field names (mirror the case-insensitive snake_case match already used inside `wrapBodyIfNeeded`). File as a follow-up Cross bug; not in scope for this PubSub-owned ticket.
+
 **Severity:** High — every QA script and downstream consumer that fences on a baseline timestamp silently receives an empty event list, masking real flow activity. Today's scenario 12 run looked like nothing fired even though the planner ran the full pipeline; only by removing the fence did the truth surface.
 **Owner:** CodeValdPubSub
 **Estimated effort:** ~0.5 day (persist a `timestamp` on every stored event; or, if it is persisted under a different field name, fix the read-side filter to read the canonical field).

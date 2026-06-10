@@ -277,6 +277,83 @@ func TestAck_Idempotent(t *testing.T) {
 	}
 }
 
+// ── ListEvents AfterTimestamp filter ───────────────────────────────────────
+
+// seedEvent inserts an Event entity directly into the fake DM without going
+// through RecordEvent (which would register a Topic and create relationships).
+func seedEvent(t *testing.T, dm *fakeDataManager, topic, publishedAt, createdAt string) string {
+	t.Helper()
+	e, err := dm.CreateEntity(context.Background(), entitygraph.CreateEntityRequest{
+		AgencyID: testAgency,
+		TypeID:   "Event",
+		Properties: map[string]any{
+			"topic":        topic,
+			"published_at": publishedAt,
+			"created_at":   createdAt,
+		},
+	})
+	if err != nil {
+		t.Fatalf("seedEvent: %v", err)
+	}
+	return e.ID
+}
+
+func TestListEvents_AfterTimestamp_FiltersOlder(t *testing.T) {
+	m, dm := newTestManager()
+	ctx := context.Background()
+
+	seedEvent(t, dm, "task.assigned", "2026-06-10T10:00:00Z", "2026-06-10T10:00:00Z")
+	seedEvent(t, dm, "task.assigned", "2026-06-10T12:00:00Z", "2026-06-10T12:00:00Z")
+
+	evts, err := m.ListEvents(ctx, testAgency, EventFilter{AfterTimestamp: "2026-06-10T11:00:00Z"})
+	if err != nil {
+		t.Fatalf("ListEvents: %v", err)
+	}
+	if len(evts) != 1 {
+		t.Fatalf("want 1 event after 11:00, got %d", len(evts))
+	}
+	if evts[0].PublishedAt != "2026-06-10T12:00:00Z" {
+		t.Errorf("PublishedAt = %q, want 12:00:00Z", evts[0].PublishedAt)
+	}
+}
+
+func TestListEvents_AfterTimestamp_FallsBackToCreatedAt(t *testing.T) {
+	m, dm := newTestManager()
+	ctx := context.Background()
+
+	// PublishedAt empty — filter must fall back to CreatedAt.
+	seedEvent(t, dm, "task.assigned", "", "2026-06-10T12:00:00Z")
+	seedEvent(t, dm, "task.assigned", "", "2026-06-10T10:00:00Z")
+
+	evts, err := m.ListEvents(ctx, testAgency, EventFilter{AfterTimestamp: "2026-06-10T11:00:00Z"})
+	if err != nil {
+		t.Fatalf("ListEvents: %v", err)
+	}
+	if len(evts) != 1 {
+		t.Fatalf("want 1 event with CreatedAt > 11:00, got %d", len(evts))
+	}
+	if evts[0].CreatedAt != "2026-06-10T12:00:00Z" {
+		t.Errorf("CreatedAt = %q, want 12:00:00Z", evts[0].CreatedAt)
+	}
+}
+
+func TestListEvents_AfterTimestamp_IncludesUnstampedRows(t *testing.T) {
+	m, dm := newTestManager()
+	ctx := context.Background()
+
+	// Pre-2026-06-10 rows: neither PublishedAt nor CreatedAt populated.
+	// They must surface so QA can still see them; do not silently drop.
+	seedEvent(t, dm, "task.assigned", "", "")
+
+	evts, err := m.ListEvents(ctx, testAgency, EventFilter{AfterTimestamp: "2026-06-10T11:00:00Z"})
+	if err != nil {
+		t.Fatalf("ListEvents: %v", err)
+	}
+	if len(evts) != 1 {
+		t.Fatalf("unstamped event must be included, got %d", len(evts))
+	}
+}
+
 func TestAck_NotFound(t *testing.T) {
 	m, _ := newTestManager()
 	ctx := context.Background()

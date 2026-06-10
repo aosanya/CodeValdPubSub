@@ -252,7 +252,11 @@ func (s *Server) GetSubscribersForTopic(ctx context.Context, req *pb.GetSubscrib
 
 func eventToProto(e codevaldpubsub.Event) *pb.Event {
 	var ts *timestamppb.Timestamp
+	// Fall back to CreatedAt if PublishedAt is missing/unparseable so the
+	// response never carries an empty timestamp when storage has one set.
 	if t, err := time.Parse(time.RFC3339, e.PublishedAt); err == nil {
+		ts = timestamppb.New(t)
+	} else if t, err := time.Parse(time.RFC3339, e.CreatedAt); err == nil {
 		ts = timestamppb.New(t)
 	}
 	return &pb.Event{

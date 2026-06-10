@@ -278,8 +278,17 @@ func (m *manager) ListEvents(ctx context.Context, agencyID string, filter EventF
 	out := make([]Event, 0, len(entities))
 	for _, e := range entities {
 		ev := eventFromEntity(e)
-		if filter.AfterTimestamp != "" && ev.CreatedAt < filter.AfterTimestamp {
-			continue
+		if filter.AfterTimestamp != "" {
+			// Prefer PublishedAt, fall back to CreatedAt — pre-2026-06-10 rows
+			// were written before created_at was always populated. Rows lacking
+			// both timestamps are included so QA scripts can still see them.
+			ts := ev.PublishedAt
+			if ts == "" {
+				ts = ev.CreatedAt
+			}
+			if ts != "" && ts < filter.AfterTimestamp {
+				continue
+			}
 		}
 		out = append(out, ev)
 		if filter.Limit > 0 && len(out) >= filter.Limit {
